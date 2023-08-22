@@ -1,4 +1,6 @@
 use libm::log;
+use libm::erfc;
+use libm::sqrt;
 
 static LOOKUP_TABLE: [(f64, f64);19] = [
         (8.0, 4.853),
@@ -22,9 +24,9 @@ static LOOKUP_TABLE: [(f64, f64);19] = [
         (256.0,  11.5)
     ];
 
-pub fn npr_coeff(n: u128, l: u128, shiftpix: u128, k: Option<f64>, coeff: &mut Vec<Vec<f64>>) {
+pub fn npr_coeff(n: u128, l: u128, shiftpix: u64, k: Option<f64>, coeff: &mut Vec<Vec<f64>>) {
 
-    let k: f64 = match k {
+    let k:u128 = match k {
         None => {
             let ind = l as f64;
             let key = log(ind);
@@ -50,6 +52,10 @@ pub fn npr_coeff(n: u128, l: u128, shiftpix: u128, k: Option<f64>, coeff: &mut V
             }
         }, 
         Some(val) => val
-    };
-    
+    } as u128;
+
+    let m:u128 = n / 2;
+
+    let f:Vec<f64> = (0..m*l-1).map(|x| (x as f64) / ((m*l) as f64)).collect();    
+    let g:Vec<f64> = f.iter().map(|x| sqrt(0.5 * erfc(2.0*(k as f64)*(m as f64)*x - 0.5))).collect();
 }
