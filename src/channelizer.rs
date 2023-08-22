@@ -1,6 +1,7 @@
 use libm::log;
 use libm::erfc;
 use libm::sqrt;
+use num::Complex;
 
 static LOOKUP_TABLE: [(f64, f64);19] = [
         (8.0, 4.853),
@@ -48,11 +49,14 @@ pub fn lookup(key: f64) -> f64 {
     }else{
         let tup_1 = (log(LOOKUP_TABLE[low].0), LOOKUP_TABLE[low].1);
         let tup_2 = (log(LOOKUP_TABLE[high].0), LOOKUP_TABLE[high].1);
-        interp_linear(tup_1, tup_2, key)
+        2.5 * interp_linear(tup_1, tup_2, key)
     }
 }
 
-pub fn npr_coeff(n: u128, l: u128, shiftpix: u64, k: Option<f64>, coeff: &mut Vec<Vec<f64>>) {
+/*
+ * coeff should be a vector of size m*l where m = n/2
+ */
+pub fn npr_coeff(n: u128, l: u128, shiftpix: u64, k: Option<f64>, coeff: &mut Vec<Complex<f64>>) {
 
     let k:f64 = match k {
         None => {
@@ -64,7 +68,10 @@ pub fn npr_coeff(n: u128, l: u128, shiftpix: u64, k: Option<f64>, coeff: &mut Ve
     } as f64;
 
     let m:u128 = n / 2;
+    let ind = (m*l) as usize;
 
-    let f:Vec<f64> = (0..m*l-1).map(|x| (x as f64) / ((m*l) as f64)).collect();    
-    let g:Vec<f64> = f.iter().map(|x| sqrt(0.5 * erfc(2.0*(k as f64)*(m as f64)*x - 0.5))).collect();
+    for val in 0..ind {
+        let inter = (val as f64) / ((m*l) as f64);
+        coeff[val] = Complex{re: sqrt(0.5 * erfc(2.0*(k as f64)*(m as f64)*inter - 0.5)), im: 0.0};
+    }
 }
