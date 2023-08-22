@@ -47,7 +47,7 @@ pub fn lookup(key: f64) -> f64 {
         2.5 * LOOKUP_TABLE[low].1
     }else{
         let tup_1 = (log(LOOKUP_TABLE[low].0), LOOKUP_TABLE[low].1);
-        let tup_2 = (log(LOOKUP_TABLE[low].0), LOOKUP_TABLE[low].1);
+        let tup_2 = (log(LOOKUP_TABLE[high].0), LOOKUP_TABLE[high].1);
         interp_linear(tup_1, tup_2, key)
     }
 }
