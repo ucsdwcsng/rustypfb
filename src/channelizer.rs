@@ -24,35 +24,44 @@ static LOOKUP_TABLE: [(f64, f64);19] = [
         (256.0,  11.5)
     ];
 
+pub fn interp_linear(x:(f64, f64), y:(f64, f64), val:f64) -> f64 {
+    x.1 + (val - x.0) * (y.1 - x.1) / (y.0 - x.0)
+}
+
+pub fn lookup(key: f64) -> f64 {
+    let mut low: usize = 0;
+    let mut high: usize = 18;
+    let mut mid: usize = 9;
+    let mut diff:bool = (high - low == 1) || (high - low == 0);
+    while !diff
+    {
+        if key < log(LOOKUP_TABLE[mid].0){
+            high = mid;
+        }else if key > log(LOOKUP_TABLE[mid].0){
+            low  = mid;
+        }
+        mid = (low + high) / 2;
+        diff = (high - low == 1) || (high - low == 0);
+    }
+    if low == high {
+        2.5 * LOOKUP_TABLE[low].1
+    }else{
+        let tup_1 = (log(LOOKUP_TABLE[low].0), LOOKUP_TABLE[low].1);
+        let tup_2 = (log(LOOKUP_TABLE[low].0), LOOKUP_TABLE[low].1);
+        interp_linear(tup_1, tup_2, key)
+    }
+}
+
 pub fn npr_coeff(n: u128, l: u128, shiftpix: u64, k: Option<f64>, coeff: &mut Vec<Vec<f64>>) {
 
-    let k:u128 = match k {
+    let k:f64 = match k {
         None => {
             let ind = l as f64;
             let key = log(ind);
-            let mut low: usize = 0;
-            let mut high: usize = 18;
-            let mut mid: usize = 9;
-            let mut diff:bool = (high - low == 1) || (high - low == 0);
-            while !diff
-            {
-                if key < log(LOOKUP_TABLE[mid].0){
-                    high = mid;
-                }else if key > log(LOOKUP_TABLE[mid].0){
-                    low  = mid;
-                }
-                mid = (low + high) / 2;
-                diff = (high - low == 1) || (high - low == 0);
-            }
-            if low == high {
-                2.5 * LOOKUP_TABLE[low].1
-            }else{
-                2.5 * (LOOKUP_TABLE[low].1 + (LOOKUP_TABLE[high].1 - LOOKUP_TABLE[low].1)*(key - log(LOOKUP_TABLE[low].0)) / 
-                (log(LOOKUP_TABLE[high].0) - log(LOOKUP_TABLE[low].0)))
-            }
+            lookup(key)         
         }, 
         Some(val) => val
-    } as u128;
+    } as f64;
 
     let m:u128 = n / 2;
 
