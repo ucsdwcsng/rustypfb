@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 libm = "0.2.7"
 num = "0.4"
+rustfft = "6.1.0"

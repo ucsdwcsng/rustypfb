@@ -1,7 +1,18 @@
 use libm::log;
 use libm::erfc;
 use libm::sqrt;
+use libm::cos;
+use libm::sin;
+use std::f64::consts::PI;
 use num::Complex;
+use rustfft::FftPlanner;
+use rustfft::Fft;
+
+pub struct polyphase_channelizer{
+    fft_plan: Box<dyn Fft<f64>>,
+    reference: Vec<Complex<f64>>,
+    ij_reference: Vec<Complex<f64>>,
+}
 
 static LOOKUP_TABLE: [(f64, f64);19] = [
         (8.0, 4.853),
@@ -53,10 +64,38 @@ pub fn lookup(key: f64) -> f64 {
     }
 }
 
+pub fn get_ij_vector(height: usize, width: Option<usize>, pixel_size: (Option<f64>, Option<f64>), ij_vector: &mut Vec<Complex<f64>>){
+
+    let width = match width {
+        None => height,
+        Some(val) => val
+    };
+
+    let pixel_size: (f64, f64) = match pixel_size{
+        (None, Some(val)) => (val, val),
+        (Some(val), None) => (val, val),
+        (Some(val_1), Some(val_2)) => (val_1, val_2),
+        (None, None) => (1.0, 1.0),
+    };
+
+    get_vector(height, ij_vector);
+
+    for item in ij_vector.iter_mut(){
+        *item *= pixel_size.0;
+    }    
+}
+
+pub fn get_vector(n:usize, output: &mut Vec<Complex<f64>>){
+    for ind in 0..n {
+        output.push(Complex{re: ((ind - output.len() / 2) as f64), im: 0.0});
+    }
+}
+
 /*
- * coeff should be a vector of size m*l where m = n/2
+ * coeff should be a mutable borrow from a float vector of size m*l where m = n/2
+ * reference should be a mutable borrow from a complex float vector of size m*l where m=n/2
  */
-pub fn npr_coeff(n: u128, l: u128, shiftpix: u64, k: Option<f64>, coeff: &mut Vec<Complex<f64>>) {
+pub fn npr_coeff(n: u128, l: u128, shiftpix: f64, k: Option<f64>, coeff: &mut Vec<f64>, channel: &mut polyphase_channelizer) {
 
     let k:f64 = match k {
         None => {
@@ -68,10 +107,43 @@ pub fn npr_coeff(n: u128, l: u128, shiftpix: u64, k: Option<f64>, coeff: &mut Ve
     } as f64;
 
     let m:u128 = n / 2;
-    let ind = (m*l) as usize;
+    let size = (m*l) as usize;
 
-    for val in 0..ind {
-        let inter = (val as f64) / ((m*l) as f64);
-        coeff[val] = Complex{re: sqrt(0.5 * erfc(2.0*(k as f64)*(m as f64)*inter - 0.5)), im: 0.0};
+    for val in 0..size {
+        let inter = (val as f64) / ((size) as f64);
+        channel.reference[val] = Complex{re: sqrt(0.5 * erfc(2.0*(k as f64)*(m as f64)*inter - 0.5)), im: 0.0};
     }
+
+    let new_size = (size / 2) as usize;
+
+    for val in 0..new_size{
+        channel.reference[size - val] = channel.reference[1 + val];
+    }
+
+    get_ij_vector(size,None, (None,None), &mut channel.ij_reference);
+
+    for item in channel.ij_reference.iter_mut(){
+        *item *= Complex{re: cos(2.0*PI*shiftpix / (size as f64)), im: -sin(2.0*PI*shiftpix / (size as f64))};
+    }
+
+    channel.ij_reference.rotate_right(size / 2);
+
+    for (index, item) in channel.reference.iter_mut().enumerate(){
+        *item *= channel.ij_reference[index];
+    }
+
+    (*(channel.fft_plan)).process(&mut channel.reference);
+
+    for (index, item) in coeff.iter_mut().enumerate(){
+        *item = channel.reference[index].re;
+    }
+
+    coeff.rotate_right(size / 2);
+
+    let norm: f64 = coeff.iter().sum();
+
+    for item in coeff.iter_mut(){
+        *item /= norm; 
+    }
+
 }
