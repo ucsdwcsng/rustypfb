@@ -4,15 +4,36 @@ use libm::log;
 use libm::sin;
 use libm::sqrt;
 use num::Complex;
+use rayon::prelude::*;
 use rustfft::Fft;
 use rustfft::FftPlanner;
 use std::f64::consts::PI;
 
+/*
+This is the struct that preserves all the state that is required for channelizing a given 1D input IQ array.
+
+fft_plan and fft_inverse_plan are FFT plans that will be initialized in the beginning, for
+forward and inverse fft computation.
+
+nsamples is the number of samples that this channelizer will analyze. This simplifies
+internal buffer memory allocations and fft planning that need to happen. Set this
+to a large number like 1000000.
+
+nchannel is the number of channels.
+
+ntaps is the number of filter taps per channel.
+*/
 pub struct polyphase_channelizer {
-    fft_inverse_plan: Box<dyn Fft<f64>>,
+    nsamples: usize,
+    nchannel: u128,
+    ntaps: u128,
+    sample_rate: f64,
     fft_plan: Box<dyn Fft<f64>>,
-    reference: Vec<Complex<f64>>,
-    ij_reference: Vec<Complex<f64>>,
+    coeff: Vec<Complex<f64>>,
+}
+
+impl polyphase_channelizer {
+    pub fn process(&self, inp: &mut Vec<Complex<f64>>) {}
 }
 
 static LOOKUP_TABLE: [(f64, f64); 19] = [
@@ -107,8 +128,9 @@ pub fn npr_coeff(
     l: u128,
     shiftpix: f64,
     k: Option<f64>,
-    coeff: &mut Vec<f64>,
-    channel: &mut polyphase_channelizer,
+    coeff: &mut Vec<Complex<f64>>,
+    reference: &mut Vec<Complex<f64>>,
+    ij_reference: &mut Vec<Complex<f64>>,
 ) {
     let k: f64 = match k {
         None => {
@@ -124,7 +146,7 @@ pub fn npr_coeff(
 
     for val in 0..size {
         let inter = (val as f64) / ((size) as f64);
-        channel.reference[val] = Complex {
+        reference[val] = Complex {
             re: sqrt(0.5 * erfc(2.0 * (k as f64) * (m as f64) * inter - 0.5)),
             im: 0.0,
         };
@@ -133,35 +155,71 @@ pub fn npr_coeff(
     let new_size = (size / 2) as usize;
 
     for val in 0..new_size {
-        channel.reference[size - val] = channel.reference[1 + val];
+        reference[size - val] = reference[1 + val];
     }
 
-    get_ij_vector(size, None, (None, None), &mut channel.ij_reference);
+    get_ij_vector(size, None, (None, None), ij_reference);
 
-    for item in channel.ij_reference.iter_mut() {
+    for item in ij_reference.iter_mut() {
         *item *= Complex {
             re: cos(2.0 * PI * shiftpix / (size as f64)),
             im: -sin(2.0 * PI * shiftpix / (size as f64)),
         };
     }
 
-    channel.ij_reference.rotate_right(size / 2);
+    ij_reference.rotate_right(size / 2);
 
-    for (index, item) in channel.reference.iter_mut().enumerate() {
-        *item *= channel.ij_reference[index];
+    for (index, item) in reference.iter_mut().enumerate() {
+        *item *= ij_reference[index];
     }
 
-    (*(channel.fft_inverse_plan)).process(&mut channel.reference);
+    let mut planner = FftPlanner::new();
+    let inverse_plan = planner.plan_fft_inverse(size);
+
+    inverse_plan.process(reference);
 
     for (index, item) in coeff.iter_mut().enumerate() {
-        *item = channel.reference[index].re;
+        *item = Complex {
+            re: reference[index].re,
+            im: 0.0,
+        };
     }
 
     coeff.rotate_right(size / 2);
 
-    let norm: f64 = coeff.iter().sum();
+    let norm: Complex<f64> = coeff.iter().sum();
 
     for item in coeff.iter_mut() {
         *item /= norm;
     }
+}
+
+pub fn flip_lr<T>(inp: &mut Vec<T>, m: usize, l: usize) {
+    for ind in 0..m {
+        let _ = &inp[ind * l..(ind + 1) * l].reverse();
+    }
+}
+
+pub fn calc_fiter(n: u128, l: u128, k: Option<f64>, shift_px: f64, coeff: &mut Vec<Complex<f64>>) {
+    let size = (l * n / 2) as usize;
+
+    let reference = &mut vec![Complex { re: 0.0, im: 0.0 }; size];
+    let ij_reference = &mut vec![Complex { re: 0.0, im: 0.0 }; size];
+
+    npr_coeff(n, l, shift_px, k, coeff, reference, ij_reference);
+
+    let sum_coeff: Complex<f64> = coeff.iter().sum();
+
+    for item in coeff.iter_mut() {
+        (*item) /= sum_coeff;
+    }
+
+    flip_lr(coeff, (n / 2) as usize, l as usize);
+
+    let mut planner = FftPlanner::new();
+    let plan = planner.plan_fft_forward(l as usize);
+
+    coeff
+        .par_chunks_mut(l as usize)
+        .for_each(|x| plan.process(x));
 }
