@@ -3,6 +3,7 @@ use libm::erfc;
 use libm::log;
 use libm::sin;
 use libm::sqrt;
+use num::complex;
 use num::Complex;
 use rayon::prelude::*;
 use rustfft::Fft;
@@ -22,20 +23,35 @@ to a large number like 1000000.
 nchannel is the number of channels.
 
 ntaps is the number of filter taps per channel.
+
+When performing convolutions, this will be doing it in full mode by default.
 */
 pub struct polyphase_channelizer {
     nsamples: usize,
     nchannel: u128,
-    ntaps: u128,
+    nslice: u128,
     sample_rate: f64,
     fft_plan: Box<dyn Fft<f64>>,
+    fft_inverse_plan: Box<dyn Fft<f64>>,
+    output_buffer: Vec<Complex<f64>>,
     coeff: Vec<Complex<f64>>,
 }
 
 impl polyphase_channelizer {
-    pub fn process(&self, inp: &mut Vec<Complex<f64>>) {}
+    pub fn process(&mut self, inp: &Vec<Complex<f64>>) {
+        self.output_buffer[0..self.nsamples].clone_from_slice(inp);
+        self.output_buffer[self.nsamples..2 * self.nsamples].clone_from_slice(inp);
+        add_sign(&mut self.output_buffer[self.nsamples..2 * self.nsamples]);
+        add_phase(
+            (self.nchannel / 2) as usize,
+            2 * self.nsamples / (self.nchannel as usize),
+            &mut self.output_buffer[self.nsamples..2 * self.nsamples],
+        );
+
+    }
 }
 
+/* This is the lookup table that is supposed to give optimal K for a given L. */
 static LOOKUP_TABLE: [(f64, f64); 19] = [
     (8.0, 4.853),
     (10.0, 4.775),
@@ -58,10 +74,13 @@ static LOOKUP_TABLE: [(f64, f64); 19] = [
     (256.0, 11.5),
 ];
 
+/* Linearly interpolate between two values. */
 pub fn interp_linear(x: (f64, f64), y: (f64, f64), val: f64) -> f64 {
     x.1 + (val - x.0) * (y.1 - x.1) / (y.0 - x.0)
 }
 
+/* Binary lookup over the LOOKUP_TABLE, followed by interpolation.
+Port of numpy's linear interp function. */
 pub fn lookup(key: f64) -> f64 {
     let mut low: usize = 0;
     let mut high: usize = 18;
@@ -85,6 +104,7 @@ pub fn lookup(key: f64) -> f64 {
     }
 }
 
+/* Port of get_ij_vector. */
 pub fn get_ij_vector(
     height: usize,
     width: Option<usize>,
@@ -110,6 +130,7 @@ pub fn get_ij_vector(
     }
 }
 
+/* Port of get_vector */
 pub fn get_vector(n: usize, output: &mut Vec<Complex<f64>>) {
     for ind in 0..n {
         output.push(Complex {
@@ -122,6 +143,8 @@ pub fn get_vector(n: usize, output: &mut Vec<Complex<f64>>) {
 /*
  * coeff should be a mutable borrow from a float vector of size m*l where m = n/2
  * reference should be a mutable borrow from a complex float vector of size m*l where m=n/2
+ * This will be called once when the Channelizer is initialized, so don't bother
+ * optimizing this very much.
  */
 pub fn npr_coeff(
     n: u128,
@@ -194,12 +217,17 @@ pub fn npr_coeff(
     }
 }
 
+// Implments flip_lr over the whole array.
 pub fn flip_lr<T>(inp: &mut Vec<T>, m: usize, l: usize) {
     for ind in 0..m {
         let _ = &inp[ind * l..(ind + 1) * l].reverse();
     }
 }
 
+/*
+ * Calculates the filter function for a given Polyphase channelizer instance.
+ * Stores the FFT of the coefficient function, to help with the convnfft procedure.
+ */
 pub fn calc_fiter(n: u128, l: u128, k: Option<f64>, shift_px: f64, coeff: &mut Vec<Complex<f64>>) {
     let size = (l * n / 2) as usize;
 
@@ -222,4 +250,26 @@ pub fn calc_fiter(n: u128, l: u128, k: Option<f64>, shift_px: f64, coeff: &mut V
     coeff
         .par_chunks_mut(l as usize)
         .for_each(|x| plan.process(x));
+}
+
+/* Tacks in the sign for the input. Needs to be called everytime the input is processed. */
+pub fn add_sign(x: &mut [Complex<f64>]) {
+    x.par_iter_mut().enumerate().for_each(|(ind, item)| {
+        (*item) *= Complex {
+            re: (2 * ind - 1) as f64,
+            im: 0.0,
+        }
+    });
+}
+
+/* Tacks in the phase for the input. Needs to be called everytime the input is processed. */
+pub fn add_phase(chann: usize, chunk: usize, x: &mut [Complex<f64>]) {
+    x.par_chunks_mut(chunk).enumerate().for_each(|(ind, item)| {
+        item.par_iter_mut().for_each(|x| {
+            *x *= Complex {
+                re: cos(2.0 * (ind as f64) * PI / (chann as f64)),
+                im: sin(2.0 * (ind as f64) * PI / (chann as f64)),
+            }
+        })
+    });
 }
