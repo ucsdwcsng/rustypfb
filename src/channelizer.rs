@@ -46,7 +46,8 @@ impl streaming_maximally_decimated_channelizer {
                     &self.coeff[(self.q - 1 - ind) * self.m..(self.q - ind) * self.m],
                     item,
                 )
-            })  
+            });
+        self.fft_inverse_plan.process(&mut self.buffer); 
     }
 }
 
