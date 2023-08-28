@@ -35,7 +35,7 @@ impl streaming_maximally_decimated_channelizer {
         let w = inp.clone();
         let s: Vec<Complex<f64>> = w.into_iter().rev().collect();
         for item in &mut self.buffer {
-            *item = Complex{re:0.0, im:0.0};
+            *item = Complex { re: 0.0, im: 0.0 };
         }
         self.buffer
             .par_chunks_mut(self.q)
@@ -47,7 +47,7 @@ impl streaming_maximally_decimated_channelizer {
                     item,
                 )
             });
-        self.fft_inverse_plan.process(&mut self.buffer); 
+        self.fft_inverse_plan.process(&mut self.buffer);
     }
 }
 
@@ -56,4 +56,3 @@ pub fn multiply(lhs: &[Complex<f64>], rhs: &[Complex<f64>], prod: &mut [Complex<
         *item += lhs[ind] * rhs[ind];
     }
 }
-
