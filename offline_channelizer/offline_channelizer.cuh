@@ -6,6 +6,7 @@ using std::complex;
 
 void __global__ create_polyphase_input(cufftComplex*, cufftComplex*, int, int);
 void __global__ multiply(cufftComplex*, cufftComplex*, cufftComplex*, int);
+void __global__ make_coeff_matrix(complex<float>*, cufftComplex*, int, int);
 
 class channelizer
 {
@@ -18,6 +19,7 @@ class channelizer
      * Polyphase filter coefficients which have been filtered along slice dimension.
      */
     cufftComplex* coeff_fft_polyphaseform;
+    int rank = 1;
 
     /*
      * Plan for taking FFT of polyphase inputs along slice dimension.
@@ -28,11 +30,26 @@ class channelizer
     int idist_1;
     int odist_1;
     int batch_1;
-    int inembed_1;
-    int onembed_1;
+    int* n_1;
+    int* inembed_1;
+    int* onembed_1;
 
     /*
      * Plan for taking IFFT (for convolution) along slice dimension.
+     * Since this has the same dimensions as in plan_1, no need
+     * to initiate similar variables.
+     */
+    // cufftHandle plan_2;
+    // int istride_2;
+    // int ostride_2;
+    // int idist_2;
+    // int odist_2;
+    // int batch_2;
+    // int* inembed_2;
+    // int* onembed_2;
+
+    /*
+     * Plan for taking IFFT (for downconversion) along channel dimension.
      */
     cufftHandle plan_2;
     int istride_2;
@@ -40,26 +57,9 @@ class channelizer
     int idist_2;
     int odist_2;
     int batch_2;
-    int inembed_2;
-    int onembed_2;
-
-    /*
-     * Plan for taking IFFT (for downconversion) along channel dimension.
-     */
-    cufftHandle plan_3;
-    int istride_3;
-    int ostride_3;
-    int idist_3;
-    int odist_3;
-    int batch_3;
-    int inembed_3;
-    int onembed_3;
-
-    /*
-     * Buffer to hold coefficients
-     */
-
-    cufftComplex* coefficient_buffer;
+    int* inembed_2;
+    int* onembed_2;
+    int* n_2;
 
     /*
      * Internal buffer to hold intermediate results.
