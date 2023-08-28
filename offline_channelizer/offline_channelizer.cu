@@ -20,16 +20,27 @@ void __global__ multiply(cufftComplex *inp, cufftComplex *coeff, cufftComplex *o
         outp[sample_id] = make_cuComplex(inp[sample_id].x * coeff[sample_id].x - inp[sample_id].y * coeff[sample_id].y, inp[sample_id].x * coeff[sample_id].y + inp[sample_id].y * coeff[sample_id].x);
 }
 
-channelizer::channelizer(int nchann, int nsl, complex<float>* coeff_arr)
+void make_coeff_matrix(cufftComplex* gpu, complex<float>* inp, int nchannel, int ntaps, int nslice) {
+    int copy_width = nchannel * sizeof(complex<float>);
+    int copy_height = ntaps;
+    int spitch = nchannel * sizeof(complex<float>);
+    int dpitch = nslice * sizeof(complex<float>);
+    cudaMemcpy2D(gpu, dpitch, inp, spitch, copy_width, copy_height, cudaMemcpyHostToDevice);
+}
+channelizer::channelizer(int nchann, int nsl, int ntap, complex<float> *coeff_arr)
 {
     nchannel = nchann;
-    nslice   = nsl;
+    nslice = nsl;
+    ntaps = ntap;
 
     // Allocate GPU memory for filter coefficients.
-    cudaMalloc((void**) &coeff_fft_polyphaseform, sizeof(cufftComplex)*nchannel*nslice);
+    cudaMalloc((void **)&coeff_fft_polyphaseform, sizeof(cufftComplex) * nchannel * nslice);
+
+    // Allocate GPU memory for input buffer.
+    cudaMalloc((void **)&input_buffer, sizeof(cufftComplex) * nchannel * nslice);
 
     // Allocate GPU memory for internal buffer.
-    cudaMalloc((void**) &internal_buffer, sizeof(cufftComplex)*nchannel*nslice);
+    cudaMalloc((void **)&internal_buffer, sizeof(cufftComplex) * nchannel * nslice);
 
     /*
      * Plan 1 : Take FFT along each row. There are nslice elements in each row.
@@ -40,7 +51,7 @@ channelizer::channelizer(int nchann, int nsl, complex<float>* coeff_arr)
     batch_1 = nchannel;
     ostride_1 = 1;
     odist_1 = nslice;
-    n_1 = new int [1];
+    n_1 = new int[1];
     *n_1 = nslice;
     inembed_1 = n_1;
     onembed_1 = n_1;
@@ -64,11 +75,31 @@ channelizer::channelizer(int nchann, int nsl, complex<float>* coeff_arr)
     batch_2 = nslice;
     ostride_2 = nslice;
     odist_2 = 1;
-    n_2 = new int [1];
+    n_2 = new int[1];
     *n_2 = nchannel;
     inembed_2 = n_2;
     onembed_2 = n_2;
 
     cufftPlanMany(&plan_1, rank, n_1, inembed_1, istride_1, idist_1, onembed_1, ostride_1, odist_1, CUFFT_C2C, batch_1);
     cufftPlanMany(&plan_2, rank, n_2, inembed_2, istride_2, idist_2, onembed_2, ostride_2, odist_2, CUFFT_C2C, batch_2);
+
+    make_coeff_matrix(coeff_fft_polyphaseform, coeff_arr, nchannel, ntaps, nslice);
+
+    // Store the Slice FFT of the coefficient matrix in the start itself.
+    cufftExecC2C(plan_1, coeff_fft_polyphaseform, coeff_fft_polyphaseform, CUFFT_FORWARD);
+}
+
+void channelizer::process(complex<float>* input, cufftComplex* output)
+{
+    cudaMemcpy(input_buffer, input, sizeof(complex<float>), cudaMemcpyHostToDevice);
+    create_polyphase_input(input_buffer, internal_buffer, nchannel, nslice);
+
+    for (int chann_id = 0; chann_id < nchannel; chann_id++)
+    {
+        multiply<<<nslice, 2>>>(input_buffer + chann_id * nslice, coeff_fft_polyphaseform + chann_id * nslice, internal_buffer + chann_id * nslice, nslice);
+    }
+    cufftExecC2C(plan_1, internal_buffer, internal_buffer, CUFFT_INVERSE);
+    cufftExecC2C(plan_2, internal_buffer, internal_buffer, CUFFT_INVERSE);
+
+    cudaMemcpy(output, internal_buffer, sizeof(complex<float>), cudaMemcpyDeviceToHost);
 }

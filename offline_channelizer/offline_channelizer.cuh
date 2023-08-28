@@ -6,14 +6,20 @@ using std::complex;
 
 void __global__ create_polyphase_input(cufftComplex*, cufftComplex*, int, int);
 void __global__ multiply(cufftComplex*, cufftComplex*, cufftComplex*, int);
-void __global__ make_coeff_matrix(complex<float>*, cufftComplex*, int, int);
+void __global__ make_coeff_matrix(complex<float>*, cufftComplex*, int, int, int);
 
 class channelizer
 {
     public:
 
+    /*
+     * nchannel is the number of channels.
+     * nslice is the number of samples in each channel.
+     * ntaps is the number of filter taps per channel.
+     */
     int nchannel;
     int nslice;
+    int ntaps;
 
     /*
      * Polyphase filter coefficients which have been filtered along slice dimension.
@@ -67,13 +73,14 @@ class channelizer
     cufftComplex* internal_buffer;
 
     /*
+     * Internal buffer to hold non-polyphase input on GPU.
+     */
+    cufftComplex* input_buffer;
+
+    /*
      * Constructor
      */
-    channelizer(int, int, complex<float>*);
-    void process(cufftComplex*, cufftComplex*);
+    channelizer(int, int, int, complex<float>*);
+    void process(complex<float>*, cufftComplex*);
     ~channelizer();
-
-
-
-
 };
