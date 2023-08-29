@@ -5,6 +5,7 @@ use libm::log;
 use libm::sin;
 use libm::sqrt;
 use num::Complex;
+use rayon::prelude::*;
 use rustfft::Fft;
 use rustfft::FftPlanner;
 use std::f64::consts::PI;
@@ -36,9 +37,6 @@ pub struct Channelizer {
     // Collection of CircularBuffers for each channel. Each buffer has capacity = taps.
     internal_buffers: Vec<CircularBuffer<taps, Complex<f64>>>,
 
-    // State : Last channel to which a sample was added. Goes from 0 to ncannel - 1
-    state: usize,
-
     // pre_out_buffer
     pre_out_buffer: Vec<Complex<f64>>,
 
@@ -50,23 +48,28 @@ pub struct Channelizer {
 }
 
 impl Channelizer {
-    pub fn buffer_process(&self, id: usize) -> Complex<f64> {
-        let mut sum = Complex { re: 0.0, im: 0.0 };
-        for (ind, item) in self.internal_buffers[id].iter().enumerate() {
-            sum += (*item) * (self.coeff[id][ind]);
-        }
-        sum
-    }
+    pub fn process(&mut self, sample_arr: &[Complex<f64>]) {
+        self.internal_buffers
+            .par_iter_mut()
+            .enumerate()
+            .for_each(|(ind, item)| item.push_front(sample_arr[self.nchannels - ind]));
 
-    pub fn process(&mut self, sample: Complex<f64>) {
-        self.state = (self.state + 1) % (self.nchannels);
-        self.internal_buffers[self.nchannels - self.state].push_front(sample);
-        self.pre_out_buffer[self.nchannels - self.state] =
-            self.buffer_process(self.nchannels - self.state);
-        self.plan.process_outofplace_with_scratch(
-            &mut self.pre_out_buffer,
-            &mut self.out_buffer,
-            &mut self.scratch_buffer,
-        );
+        (self.pre_out_buffer)
+            .par_iter_mut()
+            .enumerate()
+            .for_each(|(ind, item)| (*item) = buffer_process(&self.internal_buffers, &self.coeff, ind));
+
     }
+}
+
+pub fn buffer_process(
+    lhs: &Vec<CircularBuffer<taps, Complex<f64>>>,
+    rhs: &Vec<Vec<Complex<f64>>>,
+    id: usize,
+) -> Complex<f64> {
+    let mut sum = Complex { re: 0.0, im: 0.0 };
+    for (ind, item) in lhs[id].iter().enumerate() {
+        sum += (*item) * (rhs[id][ind]);
+    }
+    sum
 }
