@@ -94,12 +94,44 @@ void channelizer::process(complex<float>* input, cufftComplex* output)
     cudaMemcpy(input_buffer, input, sizeof(complex<float>), cudaMemcpyHostToDevice);
     create_polyphase_input(input_buffer, internal_buffer, nchannel, nslice);
 
+    /*
+     * FFT along slice dimension of the polyphas inputs.
+     */
+    cufftExecC2C(plan_1, internal_buffer, internal_buffer, CUFFT_FORWARD);
+
+    /*
+     * Multiply the FFT of input and FFT of filter coefficients.
+     */
     for (int chann_id = 0; chann_id < nchannel; chann_id++)
     {
         multiply<<<nslice, 2>>>(input_buffer + chann_id * nslice, coeff_fft_polyphaseform + chann_id * nslice, internal_buffer + chann_id * nslice, nslice);
     }
+
+    /*
+     * This is the IFFT of the product and represents the convolution of
+     * each polyphase component of the filter with the input.
+     */
     cufftExecC2C(plan_1, internal_buffer, internal_buffer, CUFFT_INVERSE);
+
+    /*
+     * Final IFFT representing the downconversion 
+     */
     cufftExecC2C(plan_2, internal_buffer, internal_buffer, CUFFT_INVERSE);
 
+    /*
+     * Send to output buffer.
+     */
     cudaMemcpy(output, internal_buffer, sizeof(complex<float>), cudaMemcpyDeviceToHost);
+}
+
+channelizer::~channelizer()
+{
+    cufftDestroy(plan_1);
+    cufftDestroy(plan_2);
+    delete [] n_1;
+    delete [] n_2;
+
+    cudaFree(coeff_fft_polyphaseform);
+    cudaFree(internal_buffer);
+    cudaFree(input_buffer);
 }
