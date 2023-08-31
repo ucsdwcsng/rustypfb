@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _CHANNELIZER_
+#define _CHANNELIZER_
 #include <cufft.h>
 #include <complex.h>
 
@@ -11,7 +12,6 @@ void __global__ make_coeff_matrix(complex<float>*, cufftComplex*, int, int, int)
 class channelizer
 {
     public:
-
     /*
      * nchannel is the number of channels.
      * nslice is the number of samples in each channel.
@@ -84,3 +84,6 @@ class channelizer
     void process(complex<float>*, cufftComplex*);
     ~channelizer();
 };
+
+#endif
+

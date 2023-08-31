@@ -1,4 +1,7 @@
-#include "offline_channelizer.cuh"
+#include "../include/offline_channelizer.cuh"
+#include <iostream>
+using std::cout;
+using std::endl;
 
 void __global__ create_polyphase_input(cufftComplex *inp, cufftComplex *outp, int nchannel, int nslice)
 {
@@ -21,11 +24,19 @@ void __global__ multiply(cufftComplex *inp, cufftComplex *coeff, cufftComplex *o
 }
 
 void make_coeff_matrix(cufftComplex* gpu, complex<float>* inp, int nchannel, int ntaps, int nslice) {
-    int copy_width = nchannel * sizeof(complex<float>);
-    int copy_height = ntaps;
-    int spitch = nchannel * sizeof(complex<float>);
-    int dpitch = nslice * sizeof(complex<float>);
-    cudaMemcpy2D(gpu, dpitch, inp, spitch, copy_width, copy_height, cudaMemcpyHostToDevice);
+    for (int id = 0; id < nchannel * ntaps; id++)
+    {
+        auto tap_id = id / nchannel;
+        auto chann_id = id % nchannel;
+        cudaMemcpy(gpu + tap_id * nchannel + chann_id * ntaps, inp + id, sizeof(cufftComplex), cudaMemcpyHostToDevice);
+        auto err_0 = cudaGetLastError();
+        cout << "Memcpy2d error " << cudaGetErrorString(err_0) << endl;
+    }
+    // int copy_width = nchannel * sizeof(complex<float>);
+    // int copy_height = ntaps;
+    // int spitch = nchannel * sizeof(complex<float>);
+    // int dpitch = nslice * sizeof(cufftComplex);
+    // cudaMemcpy2D(gpu, dpitch, inp, spitch, copy_width, copy_height, cudaMemcpyHostToDevice);
 }
 channelizer::channelizer(int nchann, int nsl, int ntap, complex<float> *coeff_arr)
 {
@@ -91,13 +102,20 @@ channelizer::channelizer(int nchann, int nsl, int ntap, complex<float> *coeff_ar
 
 void channelizer::process(complex<float>* input, cufftComplex* output)
 {
-    cudaMemcpy(input_buffer, input, sizeof(complex<float>), cudaMemcpyHostToDevice);
-    create_polyphase_input(input_buffer, internal_buffer, nchannel, nslice);
+    cudaMemcpy(input_buffer, input, sizeof(cufftComplex)*nchannel*nslice, cudaMemcpyHostToDevice);
+    auto err_1 = cudaGetLastError();
+    cout << "Memcpy error" << cudaGetErrorString(err_1) << endl;
+
+    create_polyphase_input<<<nchannel, nslice>>>(input_buffer, internal_buffer, nchannel, nslice);
+    auto err_2 = cudaGetLastError();
+    cout << "Polyphase error" << cudaGetErrorString(err_2) << endl;
 
     /*
      * FFT along slice dimension of the polyphas inputs.
      */
     cufftExecC2C(plan_1, internal_buffer, internal_buffer, CUFFT_FORWARD);
+    auto err_3 = cudaGetLastError();
+    cout << "Fft error" << cudaGetErrorString(err_3) << endl;
 
     /*
      * Multiply the FFT of input and FFT of filter coefficients.
@@ -105,6 +123,8 @@ void channelizer::process(complex<float>* input, cufftComplex* output)
     for (int chann_id = 0; chann_id < nchannel; chann_id++)
     {
         multiply<<<nslice, 2>>>(input_buffer + chann_id * nslice, coeff_fft_polyphaseform + chann_id * nslice, internal_buffer + chann_id * nslice, nslice);
+        auto err_4 = cudaGetLastError();
+        cout << "Multiply Error" << cudaGetErrorString(err_4) << endl;
     }
 
     /*
@@ -112,16 +132,22 @@ void channelizer::process(complex<float>* input, cufftComplex* output)
      * each polyphase component of the filter with the input.
      */
     cufftExecC2C(plan_1, internal_buffer, internal_buffer, CUFFT_INVERSE);
+    auto err_4 = cudaGetLastError();
+    cout << "Fft 2 error" << cudaGetErrorString(err_4) << endl;
 
     /*
      * Final IFFT representing the downconversion 
      */
     cufftExecC2C(plan_2, internal_buffer, internal_buffer, CUFFT_INVERSE);
+    auto err_5 = cudaGetLastError();
+    cout << "Fft 3 error" << cudaGetErrorString(err_5) << endl;
 
     /*
      * Send to output buffer.
      */
-    cudaMemcpy(output, internal_buffer, sizeof(complex<float>), cudaMemcpyDeviceToHost);
+    cudaMemcpy(output, internal_buffer, sizeof(complex<float>)*nchannel*nslice, cudaMemcpyDeviceToHost);
+    auto err_6 = cudaGetLastError();
+    cout << "Memcpy error" << cudaGetErrorString(err_6) << endl;
 }
 
 channelizer::~channelizer()

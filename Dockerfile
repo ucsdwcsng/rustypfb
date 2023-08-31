@@ -8,11 +8,14 @@ COPY --from=rust_base /usr/local/rustup /usr/local/rustup
 ENV PATH="/usr/local/cargo/bin:${PATH}"
 ENV RUSTUP_HOME="/usr/local/rustup"
 ENV CARGO_HOME="/usr/local/cargo"
+ENV DEBIAN_FRONTEND noninteractive
 
 RUN rustup component add rustfmt
 
 RUN apt-get update && \
     apt-get install -y lsb-release
+
+RUN apt-get update && apt-get -y install cmake 
 
 RUN apt-get update && apt-get install -y python3.8 python3-pip
 
