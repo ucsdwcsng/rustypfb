@@ -1,5 +1,7 @@
-Consider the following operation on the sequence $x[n]$:\
-![some text](./docs/channelizer.png) 
+Consider the following operation on the sequence $x[n]$:
+<p>
+    ![some text](./docs/channelizer.png) 
+</p>
 
 
 1. The frequency band of the input centered at $\theta$ is first downconverted to baseband (this is signal speak for shifting the entire frequency spectrum of $x[n]$ to the left by $\theta$). 
