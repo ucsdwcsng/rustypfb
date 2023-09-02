@@ -1,6 +1,10 @@
 #include "../include/cinterface.cuh"
 #include "../include/offline_channelizer.cuh"
 #include <stdio.h>
+#include <cmath>
+#include <complex>
+using namespace std::complex_literals;
+
 using std::complex;
 
 int main()
@@ -18,12 +22,31 @@ int main()
     filter_coeff[9] = 2.02 * 1e-20;
     chann* p_chann = chann_create(5, 4, 2, filter_coeff);
 
-    complex<float>* input = new complex<float>[20];
+    complex<float>* input = new complex<float>[20]{static_cast<complex<float>>(1.0 + 2.0i), 
+    static_cast<complex<float>>(1.0 + 2.0i),
+    static_cast<complex<float>>(1.0 + 2.0i),
+    static_cast<complex<float>>(1.0 + 2.0i),
+    static_cast<complex<float>>(1.0 + 2.0i),
+    static_cast<complex<float>>(1.0 + 2.0i),
+    static_cast<complex<float>>(1.0 + 2.0i),
+    static_cast<complex<float>>(1.0 + 2.0i),
+    static_cast<complex<float>>(1.0 + 2.0i),
+    static_cast<complex<float>>(1.0 + 2.0i),
+    static_cast<complex<float>>(1.0 + 2.0i),
+    static_cast<complex<float>>(1.0 + 2.0i),
+    static_cast<complex<float>>(1.0 + 2.0i),
+    static_cast<complex<float>>(1.0 + 2.0i),
+    static_cast<complex<float>>(1.0 + 2.0i),
+    static_cast<complex<float>>(1.0 + 2.0i),
+    static_cast<complex<float>>(1.0 + 2.0i),
+    static_cast<complex<float>>(1.0 + 2.0i),
+    static_cast<complex<float>>(1.0 + 2.0i)
+    };
     cufftComplex* output = new cufftComplex [20];
 
     chann_process(p_chann, input, output);
 
-    for (int i=0; i<10; i++)
+    for (int i=0; i<15; i++)
         printf("%f %f\n", output[i].x, output[i].y);
 
     chann_destroy(p_chann);
