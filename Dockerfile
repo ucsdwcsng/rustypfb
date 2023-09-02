@@ -25,11 +25,11 @@ RUN apt-get install ninja-build
 
 RUN git clone https://github.com/llvm/llvm-project.git
 WORKDIR /llvm-project
-RUN git checkout llvmorg-16.0.6
+RUN git checkout llvmorg-16.0.5
 RUN cmake -S llvm -B build -G Ninja -DLLVM_ENABLE_PROJECTS="clang;lld" -DCMAKE_BUILD_TYPE=Debug
 RUN cmake --build build -j8
-RUN cmake --install build --prefix /opt
-RUN ninja -C build check-llvm 
+RUN sudo cmake --install build --prefix /opt
+RUN sudo ninja -C build check-llvm 
 WORKDIR /
 
 
