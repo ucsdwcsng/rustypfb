@@ -23,14 +23,25 @@ RUN apt-get update && apt-get install -y vim wget sudo software-properties-commo
 
 RUN apt-get install ninja-build
 
-RUN git clone https://github.com/llvm/llvm-project.git
-WORKDIR /llvm-project
-RUN git checkout llvmorg-16.0.5
-RUN cmake -S llvm -B build -G Ninja -DLLVM_ENABLE_PROJECTS="clang;lld" -DCMAKE_BUILD_TYPE=Debug
-RUN cmake --build build -j8
-RUN sudo cmake --install build --prefix /opt
-RUN sudo ninja -C build check-llvm 
+# RUN git clone https://github.com/llvm/llvm-project.git
+# WORKDIR /llvm-project
+# RUN git checkout llvmorg-16.0.5
+# RUN cmake -S llvm -B build -G Ninja -DLLVM_ENABLE_PROJECTS="clang;lld" -DCMAKE_BUILD_TYPE=Debug
+# RUN cmake --build build -j8
+# RUN sudo cmake --install build --prefix /opt
+# RUN sudo ninja -C build check-llvm 
+# WORKDIR /
+
+RUN wget https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.4/clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04.tar.xz
+RUN mkdir /opt/llvm 
+RUN mv clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04.tar.xz /opt/llvm 
+WORKDIR /opt/llvm 
+RUN tar -xJf clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04.tar.xz
+RUN rm clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04.tar.xz
 WORKDIR /
+ENV LLVM_DIR=/opt/llvm/clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04
+ENV LLVM_CONFIG=${LLVM_DIR}/bin/llvm-config
+ENV PATH=${PATH}:${LLVM_DIR}/bin
 
 
 # Set user specific environment variables
