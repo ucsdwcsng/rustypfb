@@ -32,14 +32,13 @@ RUN apt-get install ninja-build
 # RUN sudo ninja -C build check-llvm 
 # WORKDIR /
 
-RUN wget https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.4/clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04.tar.xz
-RUN mkdir /opt/llvm 
-RUN mv clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04.tar.xz /opt/llvm 
-WORKDIR /opt/llvm 
-RUN tar -xJf clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04.tar.xz
+RUN wget https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.4/clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04.tar.xz 
+RUN mv clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04.tar.xz /opt 
+WORKDIR /opt 
+RUN tar -xJf clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04.tar.xz && mv clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04 llvm
 RUN rm clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04.tar.xz
 WORKDIR /
-ENV LLVM_DIR=/opt/llvm/clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04
+ENV LLVM_DIR=/opt/llvm
 ENV LLVM_CONFIG=${LLVM_DIR}/bin/llvm-config
 ENV PATH=${PATH}:${LLVM_DIR}/bin
 
