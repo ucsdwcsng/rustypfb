@@ -22,5 +22,8 @@ This is as if, the filter coefficients $h_n$ have been replaced by $h_n e^{j\the
 A result that is known as the equivalence theorem. We can then shift the multiplication by the complex sinusoid across the downsampler, and we get this:
 ![Swap downsampling and downconversion](https://github.com/ucsdwcsng/rust_channelizer/blob/main/docs/channelizer_3.png).
 
-The last multiplication can be removed with the assumption that $$ M\theta = 2\pi l$$ so that we are only interested in center frequencies that are integer multiples of the downsampling rate. Thus, we need to analyze the following:
+The last multiplication can be removed with the assumption that 
+$$ M\theta = 2\pi l$$ 
+
+so that we are only interested in center frequencies that are integer multiples of the downsampling rate. Thus, we need to analyze the following:
 ![Removing downconversion](https://github.com/ucsdwcsng/rust_channelizer/blob/main/docs/channelizer_4.png).
