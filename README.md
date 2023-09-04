@@ -53,4 +53,4 @@ Here, the notation $F_j(Z, \xi)$ indicates the portion of $F$ that depends on fi
 
 Consider $F_0(Z, \xi)$. This will only involve the coefficients $h_0, h_M, h_{2M}, \cdots$. Collecting all these coefficients in $F(Z, \xi)$, and only looking at the coefficients of $Z^{-lM}$ for some $l$ an integer, we get
 
-$$F_0(Z, \xi) = (h_0 x_M + h_M x_0) Z^{-M} + (h_{2M}x_0 + h_M x_M + h_0 x_{2M})Z^{-2M} + (h_0 x_{3M} + h_M x_{2M} + h_{2M} x_{M} + h_{3M} x_0)z^{-3M} + \cdots$$
+$$F_0(Z, \xi) = (h_0 x_M + h_M x_0) Z^{-M} + (h_{2M}x_0 + h_M x_M + h_0 x_{2M})Z^{-2M} \\+ (h_0 x_{3M} + h_M x_{2M} + h_{2M} x_{M} + h_{3M} x_0)z^{-3M} + \cdots$$
