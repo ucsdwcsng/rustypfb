@@ -85,8 +85,7 @@ $$\sum_{j=0}^{M-1}\xi^j G_j(Z)$$
 4. This represents the output at a given value of the center frequency. What if we want all of them? This structure suggests that the answer is to compute $G_j(Z)$ for each $j$ and then simply take the IFFT. The output of the IFFT would contain the filterd+downconverted+downsampled signal at all possible center frequencies.
 
 
-Offline Channelizer :
-This is the computation one needs to perform to get disjoint channels from the input array $x[n]$ given filter coefficients $h_n$. One firsts arranges the input array $x[n]$ in the layout in a buffer array
+$\textbf{Offline Channelizer}$ : This is the computation one needs to perform to get disjoint channels from the input array $x[n]$ given filter coefficients $h_n$. One firsts arranges the input array $x[n]$ in the layout in a buffer array
 
 $$
 X = \begin{pmatrix}
@@ -98,9 +97,7 @@ x_1  & x_{M+1}& x_{2M+1} & \cdots
 \end{pmatrix}
 $$
 
-This step will involve copy of the input into the layout given above. Successive input elements are mapped onto non-contiguous portions of the buffer array in the above layout, and therefore, this step is a time consuming one.
-
-Filter coefficients will be stored in the polyphase layout
+This step will involve copy of the input into the layout given above. Successive input elements are mapped onto non-contiguous portions of the buffer array in the above layout, and therefore, this step is a time consuming one. Filter coefficients will be stored in the polyphase layout
 
 $$
 H = \begin{pmatrix}
@@ -118,9 +115,7 @@ $$ \text{Column-wise IFFT}\biggl(\text{Row-wise Convolve}\biggl(X, H\biggr)\bigg
 
 For the off-line version, we use FFT based convolution algorithms as they would be faster than multiplcation based convolution.
 
-Online Channelizer:
-
-One can also construct a streaming channelizer by a simple modification of the algorithm above. By a streaming channelizer, we mean that the output in each channel is computed one sample at a time.
+$\textbf{Online Channelizer}$: One can also construct a streaming channelizer by a simple modification of the algorithm above. By a streaming channelizer, we mean that the output in each channel is computed one sample at a time.
 
 Since there are $M$ channels, the channelizer has to wait for $M$ input samples to compute one output sample in each channel. This is simply a consequence of the downsampling operation. (One can infact start computing new outputs given $M/2$ samples actually, but we don't do that micro-optimization here).
 
