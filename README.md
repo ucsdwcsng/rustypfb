@@ -23,6 +23,7 @@ A result that is known as the equivalence theorem. We can then shift the multipl
 ![Swap downsampling and downconversion](https://github.com/ucsdwcsng/rust_channelizer/blob/main/docs/channelizer_3.png).
 
 The last multiplication can be removed with the assumption that 
+
 $$ M\theta = 2\pi l$$ 
 
 so that we are only interested in center frequencies that are integer multiples of the downsampling rate. Thus, we need to analyze the following:
