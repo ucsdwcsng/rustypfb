@@ -17,6 +17,6 @@ We first note the following:
 $$\sum_{k=-\infty}^\infty x[k]e^{-j\theta k} h_{n-k} = e^{-j\theta n}\sum_{k}x[k] h_{n-k}e^{j\theta(n-k)}$$
 
 This is as if, the filter coefficients $h_n$ have been replaced by $h_n e^{j\theta n}$. This implies the following rearrangement of the block diagram above\
-![some text](/docs/channelizer_2.png)
+![some text](./docs/channelizer_2.png)
 
 A result that is known as the equivalence theorem.
