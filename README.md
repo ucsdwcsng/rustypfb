@@ -1,5 +1,5 @@
 Consider the following operation on the sequence $x[n]$:\
-<img src="docs/channelizer.PNG" />
+<img src="./docs/channelizer.png" />
 
 
 1. The frequency band of the input centered at $\theta$ is first downconverted to baseband (this is signal speak for shifting the entire frequency spectrum of $x[n]$ to the left by $\theta$). 
