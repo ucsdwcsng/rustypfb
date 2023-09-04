@@ -28,3 +28,27 @@ $$ M\theta = 2\pi l$$
 
 so that we are only interested in center frequencies that are integer multiples of the downsampling rate. Thus, we need to analyze the following:\
 ![Removing downconversion](https://github.com/ucsdwcsng/rust_channelizer/blob/main/docs/channelizer_4.png).
+
+We next note that as written here, we are computing the convolution of the filter with the input at the full rate, i.e., we are computing all the values of the output, but discarding every $M$-th value. This is wasteful, and the Polyphase Channelizer algorithm is designed to remedy this.
+
+Instead of thinking about delays and polyphase components etc., let us directly compute every $M$-th output of the filtering operation, and see if we observe any patterns.
+
+The Z-transforms of the input $x[n]$ is simply
+
+$$X(z) = x_0 + x_1 z^{-1} + x_2 z^{-2}+\cdots$$
+
+while the filter Z-transform is (note that we are taking downconversion into account from the get-go, in the following, note $\xi = e^{-j\theta}$)
+
+$$H(Z e^{-j\theta}) = h_0 + h_1 \xi z^{-1} + h_2\xi^2 z^{-2}+\cdots$$
+
+Now, simply multiply $H(Z\xi)$ with $X(Z)$ to obtain
+
+$$F(Z, \xi) = \biggl(x_0 + x_1 z^{-1} + x_2 z^{-2}+\cdots\biggr)\cdot\biggl(h_0 + h_1 \xi z^{-1} + h_2\xi^2 z^{-2}+\cdots\biggr)$$
+
+Since we are interested in every $M$-th output of this product, it makes sense to group together all those filter coefficients whose indices leave the same remainder when divided by $M$. Thus, we decompose the product $F(Z, \xi)$ as
+
+$$F(z, \xi) = F_0(z, \xi) + F_1(z, \xi) + \cdots + F_{M-1}(z, \xi)$$.
+
+Here, the notation $F_j(z, \xi)$ indicates the portion of $F$ that depends on filter coefficients $h_k$ such that $k=pM + j$ for some $p$. We also note in passing $\xi^M = 1$. 
+
+Consider the coefficients $h_0, h_M, h_{2M}, \cdots$. These enter the above product in 
