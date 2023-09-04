@@ -33,9 +33,9 @@ We next note that as written here, we are computing the convolution of the filte
 
 Instead of thinking about delays and polyphase components etc., let us directly compute every $M$-th output of the filtering operation, and see if we observe any patterns.
 
-The Z-transforms of the input $x[n]$ is simply
+The Z-transforms of the input $x[n]$ (which we assume starts at time instant $n=1$) is simply
 
-$$X(z) = x_0 + x_1 z^{-1} + x_2 z^{-2}+\cdots$$
+$$X(z) = x_1 z^{-1} + x_2 z^{-2}+\cdots$$
 
 while the filter Z-transform is (note that we are taking downconversion into account from the get-go, in the following, note $\xi = e^{-j\theta}$)
 
@@ -43,7 +43,7 @@ $$H(Z e^{-j\theta}) = h_0 + h_1 \xi z^{-1} + h_2\xi^2 z^{-2}+\cdots$$
 
 Now, simply multiply $H(Z\xi)$ with $X(Z)$ to obtain
 
-$$F(Z, \xi) = \biggl(x_0 + x_1 Z^{-1} + x_2 Z^{-2}+\cdots\biggr)\cdot\biggl(h_0 + h_1 \xi Z^{-1} + h_2\xi^2 Z^{-2}+\cdots\biggr)$$
+$$F(Z, \xi) = \biggl(x_1 Z^{-1} + x_2 Z^{-2}+\cdots\biggr)\cdot\biggl(h_0 + h_1 \xi Z^{-1} + h_2\xi^2 Z^{-2}+\cdots\biggr)$$
 
 Since we are interested in every $M$-th output of this product, it makes sense to group together all those filter coefficients whose indices leave the same remainder when divided by $M$. Thus, we decompose the product $F(Z, \xi)$ as
 
@@ -53,6 +53,18 @@ Here, the notation $F_j(Z, \xi)$ indicates the portion of $F$ that depends on fi
 
 Consider $F_0(Z, \xi)$. This will only involve the coefficients $h_0, h_M, h_{2M}, \cdots$. Collecting all these coefficients in $F(Z, \xi)$, and only looking at the coefficients of $Z^{-lM}$ for some $l$ an integer, we get
 
-$$F_0(Z, \xi) = (h_0 x_M + h_M x_0) Z^{-M} + (h_{2M}x_0 + h_M x_M + h_0 x_{2M})Z^{-2M}$$ 
+$$F_0(Z, \xi) = (h_0 x_M) Z^{-M} + (h_M x_M + h_0 x_{2M})Z^{-2M}$$ 
 
-$$ + (h_0 x_{3M} + h_M x_{2M} + h_{2M} x_{M} + h_{3M} x_0)z^{-3M} + \cdots$$
+$$ + (h_0 x_{3M} + h_M x_{2M} + h_{2M} x_{M})z^{-3M} + \cdots$$
+
+Next, look at coefficients of $Z^{-lM}$ for some $l$ an integer in $F_1(Z, \xi)$,
+
+$$F_1(Z, \xi) = \xi\biggl(h_1 x_{M-1} Z^{-M} + (h_{M+1} x_{M-1} + h_1 x_{2M-1})Z^{-2M}\biggr)$$ 
+
+$$+\xi\biggl((h_1 x_{3M-1} + h_{M+1} x_{2M-1} + h_{2M+1} x_{M-1})z^{-3M} + \cdots\biggr)$$
+
+Analyze $F_2(Z, \xi)$ next,
+
+$$F_2(Z, \xi) = \xi^2\biggl(h_2 x_{M-2} Z^{-M} + (h_{M+2} x_{M-2} + h_2 x_{2M-2})Z^{-2M}\biggr)$$ 
+
+$$+\xi^2\biggl((h_2 x_{3M-2} + h_{M+2} x_{2M-2} + h_{2M+2} x_{M-2})z^{-3M} + \cdots\biggr)$$
