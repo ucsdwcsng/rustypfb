@@ -77,12 +77,23 @@ Observe :
 
 3. Note that before these observations, we were computing convolutions between filter and input at full rate. But now, we only need to perform one convolution computation every $M$ samples of the input. This represents the gains we have made with this observation.
 
-4. Thus, to obtain the output at a given value of the center frequency, set by $\xi = e^{j\theta}$, simply compute $G_j(Z)$ as above, and then
-compute
+4. Thus, the $Z$-transform of the output at a given value of the center frequency, set by $\xi = e^{j\theta}$, is simply
 
 $$\sum_{j=0}^{M-1}\xi^j G_j(Z)$$
 
-4. This represents the output at a given value of the center frequency. What if we want all of them? This structure suggests that the answer is to compute $G_j(Z)$ for each $j$ and then simply take the IFFT. The output of the IFFT would contain the filterd+downconverted+downsampled signal at all possible center frequencies.
+5. This represents the output at a given value of the center frequency. What if we want all of them? This structure suggests that the answer is to compute $G_j(Z)$ for each $j$, and expand 
+
+$$
+G_j(Z) = \sum_{k} f_{jk} Z^{-kM}
+$$
+
+The actual output as we saw above has the Z-transform $\sum_{j} \xi^j G_j(Z)$. This suggests that the output time series in each channel is simply given by
+
+$$
+T_j = \sum_{j}\xi^j f_{jk}
+$$
+
+This is nothing but the coloumnwise IFFT of the matrix $f_{jk}$.
 
 
 $\textbf{Offline Channelizer}$ : This is the computation one needs to perform to get disjoint channels from the input array $x[n]$ given filter coefficients $h_n$. One firsts arranges the input array $x[n]$ in the layout in a buffer array
