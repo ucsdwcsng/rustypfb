@@ -19,4 +19,5 @@ $$\sum_{k=-\infty}^\infty x[k]e^{-j\theta k} h_{n-k} = e^{-j\theta n}\sum_{k}x[k
 This is as if, the filter coefficients $h_n$ have been replaced by $h_n e^{j\theta n}$. This implies the following rearrangement of the block diagram above\
 ![Swap filtering and downconversion](https://github.com/ucsdwcsng/rust_channelizer/blob/main/docs/channelizer_2.png)
 
-A result that is known as the equivalence theorem.
+A result that is known as the equivalence theorem. We can then shift the multiplication by the complex sinusoid across the downsampler, and we get this:
+![Swap downsampling and downconversion](https://github.com/ucsdwcsng/rust_channelizer/blob/main/docs/channelizer_3.png)
