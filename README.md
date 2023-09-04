@@ -43,12 +43,14 @@ $$H(Z e^{-j\theta}) = h_0 + h_1 \xi z^{-1} + h_2\xi^2 z^{-2}+\cdots$$
 
 Now, simply multiply $H(Z\xi)$ with $X(Z)$ to obtain
 
-$$F(Z, \xi) = \biggl(x_0 + x_1 z^{-1} + x_2 z^{-2}+\cdots\biggr)\cdot\biggl(h_0 + h_1 \xi z^{-1} + h_2\xi^2 z^{-2}+\cdots\biggr)$$
+$$F(Z, \xi) = \biggl(x_0 + x_1 Z^{-1} + x_2 Z^{-2}+\cdots\biggr)\cdot\biggl(h_0 + h_1 \xi Z^{-1} + h_2\xi^2 Z^{-2}+\cdots\biggr)$$
 
 Since we are interested in every $M$-th output of this product, it makes sense to group together all those filter coefficients whose indices leave the same remainder when divided by $M$. Thus, we decompose the product $F(Z, \xi)$ as
 
-$$F(z, \xi) = F_0(z, \xi) + F_1(z, \xi) + \cdots + F_{M-1}(z, \xi)$$.
+$$F(Z, \xi) = F_0(Z, \xi) + F_1(Z, \xi) + \cdots + F_{M-1}(Z, \xi)$$
 
-Here, the notation $F_j(z, \xi)$ indicates the portion of $F$ that depends on filter coefficients $h_k$ such that $k=pM + j$ for some $p$. We also note in passing $\xi^M = 1$. 
+Here, the notation $F_j(Z, \xi)$ indicates the portion of $F$ that depends on filter coefficients $h_k$ such that $k=pM + j$ for some $p$. Note futher that, at the output due to the downsamplig, we are only interested in terms in the above that involve $Z^{-lM}$ for $l$ an integer. We also note in passing $\xi^M = 1$. 
 
-Consider the coefficients $h_0, h_M, h_{2M}, \cdots$. These enter the above product in 
+Consider $F_0(Z, \xi)$. This will only involve the coefficients $h_0, h_M, h_{2M}, \cdots$. Collecting all these coefficients in $F(Z, \xi)$, and only looking at the coefficients of $Z^{-lM}$ for some $l$ an integer, we get
+
+$$F_0(Z, \xi) = (h_0 x_M + h_M x_0) Z^{-M} + (h_{2M}x_0 + h_M x_M + h_0 x_{2M})Z^{-2M} + (h_0 x_{3M} + h_M x_{2M} + h_{2M} x_{M} + h_{3M} x_0)z^{-3M} + \cdots$$
