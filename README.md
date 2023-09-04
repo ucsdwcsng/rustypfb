@@ -67,7 +67,7 @@ Analyze $F_2(Z, \xi)$ next,
 
 $$F_2(Z, \xi) = \xi^2\biggl(h_2 x_{M-2} Z^{-M} + (h_{M+2} x_{M-2} + h_2 x_{2M-2})Z^{-2M}\biggr)$$ 
 
-$$+\xi^2\biggl((h_2 x_{3M-2} + h_{M+2} x_{2M-2} + h_{2M+2} x_The factor $G_j(Z)$ is computed, at each time step, by the convolution of the input $${M-2})z^{-3M} + \cdots\biggr) = \xi^2 G_2(Z)$$
+$$+\xi^2\biggl((h_2 x_{3M-2} + h_{M+2} x_{2M-2} + h_{2M+2} x_{M-2})z^{-3M} + \cdots\biggr) = \xi^2 G_2(Z)$$
 
 Observe :
 
@@ -79,6 +79,7 @@ Observe :
 
 4. Thus, to obtain the output at a given value of the center frequency, set by $\xi = e^{j\theta}$, simply compute $G_j(Z)$ as above, and then
 compute
+
 $$\sum_{j=0}^{M-1}\xi^j G_j(Z)$$
 
 4. This represents the output at a given value of the center frequency. What if we want all of them? This structure suggests that the answer is to compute $G_j(Z)$ for each $j$ and then simply take the IFFT. The output of the IFFT would contain the filterd+downconverted+downsampled signal at all possible center frequencies.
