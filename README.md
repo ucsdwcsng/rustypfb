@@ -1,5 +1,5 @@
 Consider the following operation on the sequence $x[n]$:\
-![some text](https://github.com/ucsdwcsng/rust_channelizer/blob/main/docs/channelizer.png)
+![Signal Processing Operation that we want to do.](https://github.com/ucsdwcsng/rust_channelizer/blob/main/docs/channelizer.png)
 
 
 1. The frequency band of the input centered at $\theta$ is first downconverted to baseband (this is signal speak for shifting the entire frequency spectrum of $x[n]$ to the left by $\theta$). 
@@ -17,6 +17,6 @@ We first note the following:
 $$\sum_{k=-\infty}^\infty x[k]e^{-j\theta k} h_{n-k} = e^{-j\theta n}\sum_{k}x[k] h_{n-k}e^{j\theta(n-k)}$$
 
 This is as if, the filter coefficients $h_n$ have been replaced by $h_n e^{j\theta n}$. This implies the following rearrangement of the block diagram above\
-![some text](./docs/channelizer_2.png)
+![Swap filtering and downconversion](https://github.com/ucsdwcsng/rust_channelizer/blob/main/docs/channelizer_2.png)
 
 A result that is known as the equivalence theorem.
