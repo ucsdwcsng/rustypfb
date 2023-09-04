@@ -37,11 +37,11 @@ The Z-transforms of the input $x[n]$ (which we assume starts at time instant $n=
 
 $$X(z) = x_1 z^{-1} + x_2 z^{-2}+\cdots$$
 
-while the filter Z-transform is (note that we are taking downconversion into account from the get-go, in the following, note $\xi = e^{-j\theta}$)
+while the filter Z-transform is (note that we are taking downconversion into account from the get-go, in the following, note $\xi = e^{j\theta}$)
 
 $$H(Z e^{-j\theta}) = h_0 + h_1 \xi z^{-1} + h_2\xi^2 z^{-2}+\cdots$$
 
-Now, simply multiply $H(Z\xi)$ with $X(Z)$ to obtain
+Now, simply multiply $H(Z\xi^{-1})$ with $X(Z)$ to obtain
 
 $$F(Z, \xi) = \biggl(x_1 Z^{-1} + x_2 Z^{-2}+\cdots\biggr)\cdot\biggl(h_0 + h_1 \xi Z^{-1} + h_2\xi^2 Z^{-2}+\cdots\biggr)$$
 
@@ -55,16 +55,30 @@ Consider $F_0(Z, \xi)$. This will only involve the coefficients $h_0, h_M, h_{2M
 
 $$F_0(Z, \xi) = (h_0 x_M) Z^{-M} + (h_M x_M + h_0 x_{2M})Z^{-2M}$$ 
 
-$$ + (h_0 x_{3M} + h_M x_{2M} + h_{2M} x_{M})z^{-3M} + \cdots$$
+$$ + (h_0 x_{3M} + h_M x_{2M} + h_{2M} x_{M})z^{-3M} + \cdots = G_0(Z)$$
 
 Next, look at coefficients of $Z^{-lM}$ for some $l$ an integer in $F_1(Z, \xi)$,
 
 $$F_1(Z, \xi) = \xi\biggl(h_1 x_{M-1} Z^{-M} + (h_{M+1} x_{M-1} + h_1 x_{2M-1})Z^{-2M}\biggr)$$ 
 
-$$+\xi\biggl((h_1 x_{3M-1} + h_{M+1} x_{2M-1} + h_{2M+1} x_{M-1})z^{-3M} + \cdots\biggr)$$
+$$+\xi\biggl((h_1 x_{3M-1} + h_{M+1} x_{2M-1} + h_{2M+1} x_{M-1})z^{-3M} + \cdots\biggr) = \xi G_1(Z) $$
 
 Analyze $F_2(Z, \xi)$ next,
 
 $$F_2(Z, \xi) = \xi^2\biggl(h_2 x_{M-2} Z^{-M} + (h_{M+2} x_{M-2} + h_2 x_{2M-2})Z^{-2M}\biggr)$$ 
 
-$$+\xi^2\biggl((h_2 x_{3M-2} + h_{M+2} x_{2M-2} + h_{2M+2} x_{M-2})z^{-3M} + \cdots\biggr)$$
+$$+\xi^2\biggl((h_2 x_{3M-2} + h_{M+2} x_{2M-2} + h_{2M+2} x_The factor $G_j(Z)$ is computed, at each time step, by the convolution of the input $${M-2})z^{-3M} + \cdots\biggr) = \xi^2 G_2(Z)$$
+
+Observe :
+
+1. The $j$-th component $F_j$ depends on $\xi^j$ solely as the factor $\xi^j$ multiplied by a quantity $G_j(Z)$ that does not depend on $\xi$.
+
+2. To compute $G_j(Z)$, simply take the input samples $x_{M-j}, x_{2M-j}, x_{3M-j}, \cdots$, and perform the convolution of these samples with the filter coefficients $h_j, h_{M+j}, h_{2M+j}\cdots$. 
+
+3. Note that before these observations, we were computing convolutions between filter and input at full rate. But now, we only need to perform one convolution computation every $M$ samples of the input. This represents the gains we have made with this observation.
+
+4. Thus, to obtain the output at a given value of the center frequency, set by $\xi = e^{j\theta}$, simply compute $G_j(Z)$ as above, and then
+compute
+$$\sum_{j=0}^{M-1}\xi^j G_j(Z)$$
+
+4. This represents the output at a given value of the center frequency. What if we want all of them? This structure suggests that the answer is to compute $G_j(Z)$ for each $j$ and then simply take the IFFT. The output of the IFFT would contain the filterd+downconverted+downsampled signal at all possible center frequencies.
