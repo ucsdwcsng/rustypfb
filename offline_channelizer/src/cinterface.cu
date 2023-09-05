@@ -12,7 +12,7 @@ extern "C"
         delete reinterpret_cast<channelizer *>(inp);
     }
 
-    void chann_process(chann* inp, complex<float>* lhs, cufftComplex* rhs)
+    void chann_process(chann* inp, complex<float>* lhs, complex<float>* rhs)
     {
         reinterpret_cast<channelizer*>(inp)->process(lhs, rhs);
     }

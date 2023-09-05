@@ -2,6 +2,7 @@
 #include <iostream>
 using std::cout;
 using std::endl;
+using std::make_unique;
 
 void __global__ create_polyphase_input(cufftComplex *inp, cufftComplex *outp, int nchannel, int nslice)
 {
@@ -16,6 +17,17 @@ void __global__ create_polyphase_input(cufftComplex *inp, cufftComplex *outp, in
     }
 }
 
+void __global__ dynamic_polyphase_input(cufftComplex *inp, cufftComplex *outp, int nchannel, int nslice)
+{
+    int channel_id = blockIdx.x * blockDim.x + threadIdx.x;
+    int slice_id = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if ((slice_id < nslice) && (channel_id < nchannel))
+    {
+        outp[channel_id * nslice + slice_id] = inp[(1 + slice_id) * nchannel - 1 - channel_id];
+    }
+}
+
 void __global__ multiply(cufftComplex *inp, cufftComplex *coeff, cufftComplex *outp, int nsamples)
 {
     int sample_id = blockIdx.x * blockDim.x + threadIdx.x;
@@ -26,17 +38,31 @@ void __global__ multiply(cufftComplex *inp, cufftComplex *coeff, cufftComplex *o
 void make_coeff_matrix(cufftComplex* gpu, complex<float>* inp, int nchannel, int ntaps, int nslice) {
     for (int id = 0; id < nchannel * ntaps; id++)
     {
-        auto tap_id = id / nchannel;
-        auto chann_id = id % nchannel;
+        int tap_id = id / nchannel;
+        int chann_id = id % nchannel;
         cudaMemcpy(gpu + tap_id * nchannel + chann_id * ntaps, inp + id, sizeof(cufftComplex), cudaMemcpyHostToDevice);
         auto err_0 = cudaGetLastError();
-        cout << "Memcpy2d error " << cudaGetErrorString(err_0) << endl;
+        // cout << "Memcpy2d error " << cudaGetErrorString(err_0) << endl;
     }
     // int copy_width = nchannel * sizeof(complex<float>);
     // int copy_height = ntaps;
     // int spitch = nchannel * sizeof(complex<float>);
     // int dpitch = nslice * sizeof(cufftComplex);
     // cudaMemcpy2D(gpu, dpitch, inp, spitch, copy_width, copy_height, cudaMemcpyHostToDevice);
+}
+
+void __global__ dynamic_multiply(cufftComplex *inp, cufftComplex *coeff, cufftComplex *outp, int nchannels, int nslices)
+{
+    int channel_id = blockIdx.x * blockDim.x + threadIdx.x;
+    int slice_id = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if ((channel_id < nchannels) && (slice_id < nslices))
+    {   
+        auto sample_id = channel_id*nslices + slice_id;
+        cufftComplex lhs  = inp[sample_id];
+        cufftComplex rhs  = coeff[sample_id];
+        outp[sample_id] = make_cuComplex(lhs.x* rhs.x - lhs.y * rhs.y, lhs.x * rhs.y + lhs.y * rhs.x);
+    }
 }
 channelizer::channelizer(int nchann, int nsl, int ntap, complex<float> *coeff_arr)
 {
@@ -100,13 +126,19 @@ channelizer::channelizer(int nchann, int nsl, int ntap, complex<float> *coeff_ar
     cufftExecC2C(plan_1, coeff_fft_polyphaseform, coeff_fft_polyphaseform, CUFFT_FORWARD);
 }
 
-void channelizer::process(complex<float>* input, cufftComplex* output)
+void channelizer::process(complex<float>* input, complex<float>* output)
 {
     cudaMemcpy(input_buffer, input, sizeof(cufftComplex)*nchannel*nslice, cudaMemcpyHostToDevice);
     auto err_1 = cudaGetLastError();
     cout << "Memcpy error" << cudaGetErrorString(err_1) << endl;
 
-    create_polyphase_input<<<nchannel, nslice>>>(input_buffer, internal_buffer, nchannel, nslice);
+    // create_polyphase_input<<<nchannel, nslice>>>(input_buffer, internal_buffer, nchannel, nslice);
+    // auto err_2 = cudaGetLastError();
+    // cout << "Polyphase error" << cudaGetErrorString(err_2) << endl;
+
+    dim3 dimBlock(16, 16);
+    dim3 dimGrid(nchannel / 8, nslice / 8);
+    dynamic_polyphase_input<<<dimGrid, dimBlock>>>(input_buffer, internal_buffer, nchannel, nslice);
     auto err_2 = cudaGetLastError();
     cout << "Polyphase error" << cudaGetErrorString(err_2) << endl;
 
@@ -120,12 +152,15 @@ void channelizer::process(complex<float>* input, cufftComplex* output)
     /*
      * Multiply the FFT of input and FFT of filter coefficients.
      */
-    for (int chann_id = 0; chann_id < nchannel; chann_id++)
-    {
-        multiply<<<nslice, 2>>>(input_buffer + chann_id * nslice, coeff_fft_polyphaseform + chann_id * nslice, internal_buffer + chann_id * nslice, nslice);
-        auto err_4 = cudaGetLastError();
-        cout << "Multiply Error" << cudaGetErrorString(err_4) << endl;
-    }
+    // for (int chann_id = 0; chann_id < nchannel; chann_id++)
+    // {
+    //     multiply<<<nslice, 2>>>(input_buffer + chann_id * nslice, coeff_fft_polyphaseform + chann_id * nslice, internal_buffer + chann_id * nslice, nslice);
+    //     auto err_4 = cudaGetLastError();
+    //     cout << "Multiply Error" << cudaGetErrorString(err_4) << endl;
+    // }
+    dynamic_multiply<<<dimGrid, dimBlock>>>(internal_buffer, coeff_fft_polyphaseform, internal_buffer, nchannel, nslice);
+    auto err_ = cudaGetLastError();
+    cout << "Multiply_error" << cudaGetErrorString(err_) << endl;
 
     /*
      * This is the IFFT of the product and represents the convolution of
@@ -160,4 +195,9 @@ channelizer::~channelizer()
     cudaFree(coeff_fft_polyphaseform);
     cudaFree(internal_buffer);
     cudaFree(input_buffer);
+}
+
+unique_ptr<channelizer> create_chann(int nchann, int nsl, int ntap, vector<complex<float>> coeff_arr)
+{
+    return make_unique<channelizer>(nchann, nsl, ntap, &coeff_arr[0]);
 }

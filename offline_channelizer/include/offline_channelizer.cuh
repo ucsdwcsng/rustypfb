@@ -2,8 +2,12 @@
 #define _CHANNELIZER_
 #include <cufft.h>
 #include <complex.h>
+#include <memory>
+#include <vector>
 
 using std::complex;
+using std::unique_ptr;
+using std::vector;
 
 void __global__ create_polyphase_input(cufftComplex*, cufftComplex*, int, int);
 void __global__ multiply(cufftComplex*, cufftComplex*, cufftComplex*, int);
@@ -81,9 +85,11 @@ class channelizer
      * Constructor
      */
     channelizer(int, int, int, complex<float>*);
-    void process(complex<float>*, cufftComplex*);
+    void process(complex<float>*, complex<float>*);
     ~channelizer();
 };
+
+unique_ptr<channelizer> create_chann(int, int, int, vector<complex<float>>);
 
 #endif
 
