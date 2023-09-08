@@ -44,6 +44,8 @@ services:
 
     working_dir: "/root/channelizer"
     command: ["tail", "-f", "/dev/null"]
+    cap_add:
+      - SYS_ADMIN
 
   # pytorch-devel-user:
   #   build:

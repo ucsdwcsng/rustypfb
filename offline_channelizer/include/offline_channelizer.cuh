@@ -72,6 +72,34 @@ class channelizer
     int* n_2;
 
     /*
+     * Plan for taking FFT along coloumns. This requires no reshape of input.
+     */
+
+    cufftHandle plan_4;
+    int istride_4;
+    int ostride_4;
+    int idist_4;
+    int odist_4;
+    int batch_4;
+    int* inembed_4;
+    int* onembed_4;
+    int* n_4;
+
+    /*
+     * Plan for taking IFFT along rows. This requires no reshape of input.
+     */
+
+    cufftHandle plan_5;
+    int istride_5;
+    int ostride_5;
+    int idist_5;
+    int odist_5;
+    int batch_5;
+    int* inembed_5;
+    int* onembed_5;
+    int* n_5;
+
+    /*
      * Internal buffer to hold intermediate results.
      */
     cufftComplex* internal_buffer;

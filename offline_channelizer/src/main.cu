@@ -20,9 +20,9 @@ float sinc(float x)
 
 int main()
 {
-    int Nsamples = 1000000;
+    int Nsamples = 100000000;
     int Nch   = 1024;
-    int Nslice = 1024;
+    int Nslice = 1024*128;
     int Nproto = 100;
     float kbeta=9.6;
     vector<complex<float>> filter_function;
@@ -33,9 +33,10 @@ int main()
     }
     
 
-    chann* p_chann = chann_create(Nch, Nslice, Nproto, &filter_function[0]);
+    // chann* p_chann = chann_create(Nch, Nslice, Nproto, &filter_function[0]);
+    auto obj_chann = channelizer(Nch, Nslice, Nproto, &filter_function[0]);
 
-    complex<float>* input = new complex<float>[Nsamples];
+    complex<float>* input = new complex<float>[Nch*Nslice];
     for (int k=0; k<Nsamples; k++)
     {
         complex<float> t(k, 2.0 *k);
@@ -49,14 +50,14 @@ int main()
     for (int i=0; i<ntimes; i++)
     {
         auto start = high_resolution_clock::now();
-        chann_process(p_chann, input, output);
+        obj_chann.process(input, output);
         auto end = high_resolution_clock::now();
         double f = duration<double, std::milli>(end-start).count();
         total_duration += f;
     }
     std::cout << "Time taken in milliseconds to process " << Nsamples <<" samples into 1024 channels is " << (total_duration / ntimes) << std::endl;
 
-    chann_destroy(p_chann);
+    // chann_destroy(p_chann);
     delete [] input;
     delete [] output;
 }
