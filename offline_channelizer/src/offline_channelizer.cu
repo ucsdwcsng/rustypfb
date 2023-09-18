@@ -44,18 +44,9 @@ ProcessData::~ProcessData()
 }
 
 /*
- * This is the main reshaping kernel function.
- * It is designed to act in separate streams.
+ * This is the main reshaping kernel function. It is designed to act across streams in separate streams.
  * 
- * At a given time, one block processes 32 channels,
- * and 32 slices in each channel.
- * 
- * The grid has 4096 blocks in the y-direction
- * and one in the x-direction.
- * 
- * Thus, block = (32, 32)
- * 
- * and grid = (1, 4096)
+ * At a given time, one block processes 32 channels, and 32 slices in each channel.
  * 
  * Shared memory amounts to be 64 kB per block which is supported by
  * A100 Ampere.
@@ -83,18 +74,6 @@ void make_coeff_matrix(cufftComplex* gpu, complex<float>* inp) {
         int chann_id = id % NCHANNEL;
         cudaMemcpy(gpu + tap_id  + chann_id * NSLICE, inp + id, sizeof(cufftComplex), cudaMemcpyHostToDevice);
         auto err_0 = cudaGetLastError();
-        // cout << "Memcpy2d error " << cudaGetErrorString(err_0) << endl;
-    }
-}
-
-void async_copy(complex<float> *inp, cufftComplex* output, int nchannels, int nslice)
-{
-    #pragma omp parallel
-    {
-        for (int i=0; i<nslice; i++)
-        {
-            memcpy(output + i*nchannels, inp + i*nchannels, sizeof(cufftComplex)*nchannels);
-        }
     }
 }
 
@@ -154,7 +133,6 @@ channelizer::channelizer(complex<float> *coeff_arr)
 
     streams = {};
     forward_process_fft_streams = {};
-    down_convert_fft_streams = {};
     for (int i=0; i<NSTREAMS; i++)
     {
         auto stream = shared_ptr<cudaStream_t>(new cudaStream_t);
@@ -168,9 +146,6 @@ channelizer::channelizer(complex<float> *coeff_arr)
     // make_coeff_matrix(coeff_fft_polyphaseform, coeff_arr, nchannel, ntaps, nslice);
     make_coeff_matrix(coeff_fft_polyphaseform, coeff_arr);
 
-    // Store the Slice FFT of the coefficient matrix in the start itself.
-    // cufftExecC2C(plan_1, coeff_fft_polyphaseform, coeff_fft_polyphaseform, CUFFT_FORWARD);
-
     // Hopefully faster GPU version.
     cufftExecC2C(plan_1, coeff_fft_polyphaseform, coeff_fft_polyphaseform, CUFFT_FORWARD);
 }
@@ -180,31 +155,16 @@ void channelizer::process(complex<float>* input)
     
     dim3 dimBlockFlipTranspose(SUBCHANNELS, SUBSLICES);
     dim3 dimGridFlipTranspose(1, NUMYBLOCKS);
-
     dim3 dimBlockMultiply(SUBSLICES, SUBCHANNELS);
     dim3 dimGridMultiply(NUMYBLOCKS, 1);
     memcpy(locked_buffer, input, sizeof(cufftComplex)*NCHANNEL*NSLICE);
-    // cout << "Inside Process function" << endl;
-        // copy_per_stream(cufftComplex* inp, cufftComplex* output, int subchannels, int nslice, int nchannels, int start_channel_id)
     for (int j=0; j< NSTREAMS; j++){
         
         auto stream_val = *(streams[j]);
-        // cudaMemcpy2DAsync(locked_buffer + nchannel - (j+1)*subchannels, sizeof(cufftComplex)*nchannel, input + nchannel - (j+1)*subchannels, sizeof(cufftComplex)*nchannel, sizeof(cufftComplex)*subchannels, nslice, cudaMemcpyHostToHost, stream_val);
-        // auto err_stream = cudaStreamQuery(stream_val);
-        // // cout << "Stream Error" << cudaGetErrorString(err_stream) << endl;
         flipped_transpose<<<dimGridFlipTranspose, dimBlockFlipTranspose, 0, stream_val>>>(locked_buffer + NCHANNEL - 1 - j*SUBCHANNELS, scratch_buffer);
-        auto err_0 = cudaGetLastError();
-        // cout << "First error" << cudaGetErrorString(err_0) << endl;
         cufftExecC2C(forward_process_fft_streams[j]->plan, scratch_buffer, scratch_buffer, CUFFT_FORWARD);
-        //     // multiply_per_stream(cufftComplex* inp, cufftComplex* coeff, cufftComplex* output, int subchannels, int nslice, int nchannels, int start_channel_id)
         multiply_per_stream<<<dimGridMultiply, dimBlockMultiply, 0, stream_val>>>(scratch_buffer, coeff_fft_polyphaseform, output_buffer, j*SUBCHANNELS);
-        // // auto err_1 = cudaGetLastError();
-        // cout << "Second error" << cudaGetErrorString(err_1) << endl;
         cufftExecC2C(forward_process_fft_streams[j]->plan, output_buffer + j*SUBCHANNELS*NSLICE, output_buffer + j*SUBCHANNELS*NSLICE, CUFFT_INVERSE);
-        // cufftExecC2C(down_convert_fft_streams[j]->plan, input_buffer+ j*nslice*nchannel / nstreams, input_buffer + j*nslice*nchannel / nstreams, CUFFT_INVERSE);
-        // auto err_2 = cudaGetLastError();
-        // cout << "Third error" << cudaGetErrorString(err_2) << endl;
-        // cudaMemcpyAsync(output + j*subchannels, input_buffer + j*subchannels, sizeof(cufftComplex)*nslice*subchannels, cudaMemcpyDeviceToHost, stream_val);
     }
     // cudaMemcpy(output, input_buffer, sizeof(cufftComplex)*nslice*nchannel, cudaMemcpyDeviceToHost);
     auto err_t = cudaDeviceSynchronize();
@@ -214,13 +174,8 @@ void channelizer::process(complex<float>* input)
 
 channelizer::~channelizer()
 {
-    // cufftDestroy(plan_1);
-    // cufftDestroy(plan_2);
-    cout << "Inside destructor" << endl;
     cufftDestroy(plan_1);
     cufftDestroy(plan_2);
-    // delete [] n_1;
-    // delete [] n_2;
     delete [] n_1;
     delete [] n_2;
     cudaFree(coeff_fft_polyphaseform);
