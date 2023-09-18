@@ -23,24 +23,16 @@ RUN apt-get update && apt-get install -y vim wget sudo software-properties-commo
 
 RUN apt-get update && apt-get install ninja-build
 
-# This step installs a pre-built Clang+LLVM toolchain that matches the version the 
-# Rust compiler uses.
-
-# RUN wget https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.4/clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04.tar.xz 
-# RUN mv clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04.tar.xz /opt 
-# WORKDIR /opt 
-# RUN tar -xJf clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04.tar.xz && mv clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04 llvm_prebuilt
-# RUN rm clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04.tar.xz
-# WORKDIR /
-
+# This step builds and installs Clang+LLVM toolchain from source that matches the version the 
+# Rust compiler uses. Openmp is also enabled.
+# LLVM gets installed in opt/llvm
 RUN mkdir /opt/llvm 
 RUN git clone https://github.com/llvm/llvm-project.git
 WORKDIR /llvm-project 
-RUN git checkout llvmorg-16.0.4 
+RUN git checkout llvmorg-16.0.5 
 RUN cmake -S llvm -B build -G Ninja \
     -DLLVM_ENABLE_PROJECTS="clang;lld" -DLLVM_ENABLE_RUNTIMES="openmp" -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=/opt/llvm
-# RUN cmake --build build -j8 
 RUN ninja -C build install
 
 WORKDIR /
@@ -49,21 +41,24 @@ ENV LLVM_DIR=/opt/llvm
 ENV LLVM_CONFIG=${LLVM_DIR}/bin/llvm-config
 ENV PATH=${PATH}:${LLVM_DIR}/bin
 
-# Install FFTW for reverts for the Clang compiler
+# Download FFTW for reverts for the Clang compiler
 RUN wget https://www.fftw.org/fftw-3.3.10.tar.gz
 RUN tar -zxvf fftw-3.3.10.tar.gz
 RUN rm fftw-3.3.10.tar.gz
 WORKDIR /fftw-3.3.10
 
+# FFTW install for float precision with openmp support
 RUN ./configure --enable-float --enable-openmp 
 RUN make CC=/opt/llvm/bin/clang -j8 
 RUN make install 
 
+# FFTW install for double precision with openmp support
 RUN make clean 
 RUN ./configure --enable-openmp
 RUN make CC=/opt/llvm/bin/clang -j8 
 RUN make install 
 
+# FFTW install for long double precision with openmp support
 RUN make clean 
 RUN ./configure --enable-long-double --enable-openmp
 RUN make CC=/opt/llvm/bin/clang -j8 
