@@ -22,29 +22,6 @@ float sinc(float x)
 
 int main()
 {
-    // auto inp = new int [32];
-    // auto outp = new int [32];
-    // for (int i=0; i<32; i++)
-    // {
-    //     inp[i] = i;
-    // }
-
-    // for (int i=0; i<32; i++)
-    // {
-    //     cout << outp[i] << endl;
-    // }
-    // cudaMemcpy2D(outp + 6, 8*sizeof(int), inp+6, 8*sizeof(int), 2*sizeof(int), 4, cudaMemcpyHostToHost);
-    // cout << "After strided copying" << endl;
-    // for (int i=0; i<32; i++)
-    // {
-    //     cout << outp[i] << endl;
-    // }
-    // cudaMemcpy2D(outp + 4, 8*sizeof(int), inp+4, 8*sizeof(int), 2*sizeof(int), 4, cudaMemcpyHostToHost);
-    // cout << "After second strided copying" << endl;
-    // for (int i=0; i<32; i++)
-    // {
-    //     cout << outp[i] << endl;
-    // }
     int Nsamples = 100000000;
     int Nch   = 1024;
     int Nslice = 1024*128;
@@ -73,20 +50,17 @@ int main()
     {
         cout << filter_function[k].real() << " " << filter_function[k].imag() << endl;
     }    
-
-    // chann* p_chann = chann_create(Nch, Nslice, Nproto, &filter_function[0]);
     auto obj_chann = channelizer(&filter_function[0]);
 
     complex<float>* input = new complex<float>[Nch*Nslice];
+    complex<float>* output_gpu;
+    cudaMalloc((void **)&output_gpu, sizeof(cufftComplex) * Nch * Nslice*2);
     for (int k=0; k<Nsamples; k++)
     {
         complex<float> t(sin(k), sinc(2.0 *k));
         input[k] = t;
-        // cout << input[k].real() << " " << input[k].imag() << endl;
     }
-    // complex<float>* output = new complex<float> [Nch*Nslice];
-    // complex<float>* output;
-    complex<float>* output = new complex<float>[10];
+    complex<float>* output_cpu = new complex<float>[10];
 
     double total_duration = 0.0;
     int ntimes = 100;
@@ -94,26 +68,19 @@ int main()
     for (int i=0; i<ntimes; i++)
     {
         auto start = high_resolution_clock::now();
-        obj_chann.process(input);
+        obj_chann.process(input, output_gpu);
         auto end = high_resolution_clock::now();
-        double f = duration<double, std::milli>(end-start).count();
-        cudaMemcpy(output, obj_chann.output_buffer, sizeof(cufftComplex)*10, cudaMemcpyDeviceToHost);
+        double f = duration<double>(end-start).count();
+        cudaMemcpy(output_cpu, output_gpu, sizeof(complex<float>)*10, cudaMemcpyDeviceToHost);
         for (int i=0; i<10; i++)
     {
-        cout << output[i].real() << " " << output[i].imag() << endl;  
+        cout << output_cpu[i].real() << " " << output_cpu[i].imag() << endl;  
     }
         cout << "-----------------------------------------" << endl;
         total_duration += f;
     }
-    std::cout << "Time taken in milliseconds to process " << Nsamples <<" samples into 1024 channels is " << (total_duration / ntimes) << std::endl;
-
-    // for (int i=0; i<1000; i++)
-    // {
-    //     cout << output[i].real() << " " << output[i].imag() << endl;  
-    // }
-
-    // chann_destroy(p_chann);
+    std::cout << "Time taken in seconds to process " << Nsamples <<" samples into 1024 channels is " << (total_duration / ntimes) << std::endl;
     delete [] input;
-    // delete [] output;
-    delete [] output;
+    cudaFree(output_gpu);
+    delete [] output_cpu;
 }
