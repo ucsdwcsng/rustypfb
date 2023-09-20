@@ -43,19 +43,8 @@ class channelizer
 {
     public:
     /*
-     * nchannel is the number of channels.
-     * nslice is the number of samples in each channel.
-     * ntaps is the number of filter taps per channel.
-     */
-    // int nchannel;
-    // int nslice;
-    // int ntaps;
-
-
-    /*
      * Polyphase filter coefficients which have been filtered along slice dimension.
      */
-    cufftComplex* coeff_fft_polyphaseform;
     int rank = 1;
 
     /*
@@ -76,15 +65,33 @@ class channelizer
     //  * Plan for taking IFFT along channels.
     //  */
 
-    cufftHandle plan_2;
-    int istride_2;
-    int ostride_2;
-    int idist_2;
-    int odist_2;
-    int batch_2;
-    int* inembed_2;
-    int* onembed_2;
-    int* n_2;
+    cufftHandle plan;
+    int istride;
+    int ostride;
+    int idist;
+    int odist;
+    int batch;
+    int* inembed;
+    int* onembed;
+    int* n;
+
+    /*
+     * Plan for FFT along channel dimensions
+     */
+    cufftHandle plan_0;
+    int istride_0;
+    int ostride_0;
+    int idist_0;
+    int odist_0;
+    int batch_0;
+    int* inembed_0;
+    int* onembed_0;
+    int* n_0;
+
+    /*
+     * Holds the Coefficient filter coefficients.
+     */
+    cufftComplex* coeff_fft_polyphaseform;
 
     /*
      * Output buffer to hold results.
@@ -102,8 +109,8 @@ class channelizer
      */
     cufftComplex* locked_buffer;
 
-    vector<shared_ptr<cudaStream_t>> streams;
-    vector<shared_ptr<ProcessData>> forward_process_fft_streams;
+    // vector<shared_ptr<cudaStream_t>> streams;
+    // vector<shared_ptr<ProcessData>> forward_process_fft_streams;
 
     /*
      * Constructor

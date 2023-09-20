@@ -102,6 +102,7 @@ int main()
     {
         cout << output[i].real() << " " << output[i].imag() << endl;  
     }
+        cout << "-----------------------------------------" << endl;
         total_duration += f;
     }
     std::cout << "Time taken in milliseconds to process " << Nsamples <<" samples into 1024 channels is " << (total_duration / ntimes) << std::endl;
