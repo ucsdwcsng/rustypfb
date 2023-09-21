@@ -14,9 +14,11 @@ using std::weak_ptr;
 using std::make_unique;
 using std::make_shared;
 
-void __global__ create_polyphase_input(cufftComplex*, cufftComplex*, int, int);
-void __global__ multiply(cufftComplex*, cufftComplex*, cufftComplex*, int);
-void __global__ make_coeff_matrix(complex<float>*, cufftComplex*, int, int, int);
+
+void __global__ make_coeff_matrix(cufftComplex*, complex<float>*);
+void __global__ multiply(cufftComplex*, cufftComplex*, cufftComplex*);
+void __global__ scale(cufftComplex* , bool);
+void __global__ alias(cufftComplex*);
 
 class channelizer
 {
@@ -24,8 +26,6 @@ class channelizer
     /*
      * Polyphase filter coefficients which have been filtered along slice dimension.
      */
-    int rank = 1;
-
     /*
      * Plan for taking the initial FFT of input samples on host along slice dimension. 
      * The input is arranged as given by the call to process:
@@ -147,11 +147,6 @@ class channelizer
      * device and host.
      */
     cufftComplex* locked_buffer;
-
-    // cudaStream_t stream_1, stream_2;
-
-    // vector<shared_ptr<cudaStream_t>> streams;
-    // vector<shared_ptr<ProcessData>> forward_process_fft_streams;
 
     /*
      * Constructor
