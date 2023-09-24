@@ -15,10 +15,11 @@ using std::make_unique;
 using std::make_shared;
 
 
-void __global__ make_coeff_matrix(cufftComplex*, complex<float>*);
+void make_coeff_matrix(cufftComplex*, complex<float>*);
 void __global__ multiply(cufftComplex*, cufftComplex*, cufftComplex*);
 void __global__ scale(cufftComplex* , bool);
 void __global__ alias(cufftComplex*);
+void __global__ club(float*, cufftComplex*, int);
 
 class channelizer
 {
@@ -149,14 +150,18 @@ class channelizer
     cufftComplex* locked_buffer;
 
     /*
+     * Page locked memory on host which is accessible to both 
+     * device and host, used to hold the interleaved floats.
+     */
+    float* locked_buffer_interleaved;
+
+    /*
      * Constructor
      */
     channelizer(complex<float>*);
-    void process(complex<float>*, complex<float>*);
+    // void process(complex<float>*, complex<float>*);
+    void process(float*, complex<float>*);
     ~channelizer();
 };
-
-// unique_ptr<channelizer> create_chann(int, vector<complex<float>>);
-
 #endif
 

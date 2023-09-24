@@ -119,6 +119,26 @@ void __global__ alias(cufftComplex* inp)
     }
 }
 
+void __global__ club(float* inp, cufftComplex* output, int size)
+{
+    int id = blockIdx.x * blockDim.x + threadIdx.x;
+    int out_id = static_cast<int>(id / 2);
+    // printf("%d\n", id);
+    if (id < size)
+    {
+        // printf("Inside Kernel function\n");
+        if (id%2 == 0)
+        {
+            output[out_id].x = inp[id];
+        }
+        // printf("%f %f\n", output[out_id].x, output[out_id].y);
+        else 
+        {
+            output[out_id].y = inp[id];
+        }
+    }
+}
+
 channelizer::channelizer(complex<float> *coeff_arr)
 {
     // Allocate GPU memory for filter coefficients.
@@ -126,6 +146,9 @@ channelizer::channelizer(complex<float> *coeff_arr)
 
     // Allocate Pagelocked memory for input buffer on host
     cudaMallocHost((void **)&locked_buffer, sizeof(cufftComplex) * NCHANNELHALF * NSLICE);
+
+    // Allocate Pagelocked memory for interleaved input buffer on host
+    cudaMallocHost((void **)&locked_buffer_interleaved, sizeof(float) * NCHANNEL * NSLICE);
 
     // Allocate GPU memory for output buffer.
     cudaMalloc((void **)&output_buffer, sizeof(cufftComplex) * NCHANNEL * NSLICE);
@@ -177,11 +200,26 @@ channelizer::channelizer(complex<float> *coeff_arr)
     make_coeff_matrix(coeff_fft_polyphaseform, coeff_arr);
 }
 
-void channelizer::process(complex<float>* input, complex<float>* output)
+// void channelizer::process(complex<float>* input, complex<float>* output)
+// {
+//     dim3 dimBlockMultiply(BLOCKSLICES, BLOCKCHANNELS);
+//     dim3 dimGridMultiply(GRIDSLICES, GRIDCHANNELS);
+//     memcpy(locked_buffer, input, sizeof(cufftComplex)*NCHANNELHALF*NSLICE);
+//     cufftExecC2C(plan_0, locked_buffer, scratch_buffer, CUFFT_FORWARD);
+//     multiply<<<dimGridMultiply, dimBlockMultiply>>>(scratch_buffer, coeff_fft_polyphaseform, output_buffer);
+//     cufftExecC2C(plan_1, output_buffer, output_buffer, CUFFT_INVERSE);
+//     scale<<<dimGridMultiply, dimBlockMultiply>>>(output_buffer, true);
+//     cufftExecC2C(plan_2, output_buffer, output_buffer, CUFFT_INVERSE);
+//     scale<<<dimGridMultiply, dimBlockMultiply>>>(output_buffer, false);
+//     alias<<<dimGridMultiply, dimBlockMultiply>>>(output_buffer);
+//     cudaMemcpy(output, output_buffer, sizeof(complex<float>)*NSLICE*NCHANNEL, cudaMemcpyDeviceToDevice);
+// }
+void channelizer::process(float* input, complex<float>* output)
 {
     dim3 dimBlockMultiply(BLOCKSLICES, BLOCKCHANNELS);
     dim3 dimGridMultiply(GRIDSLICES, GRIDCHANNELS);
-    memcpy(locked_buffer, input, sizeof(cufftComplex)*NCHANNELHALF*NSLICE);
+    memcpy(locked_buffer_interleaved, input, sizeof(float)*NCHANNEL*NSLICE);
+    club<<<NSLICE, NCHANNEL>>>(locked_buffer_interleaved, locked_buffer, NSLICE*NCHANNEL);
     cufftExecC2C(plan_0, locked_buffer, scratch_buffer, CUFFT_FORWARD);
     multiply<<<dimGridMultiply, dimBlockMultiply>>>(scratch_buffer, coeff_fft_polyphaseform, output_buffer);
     cufftExecC2C(plan_1, output_buffer, output_buffer, CUFFT_INVERSE);
@@ -203,10 +241,11 @@ channelizer::~channelizer()
     cudaFree(coeff_fft_polyphaseform);
     cudaFree(scratch_buffer);
     cudaFreeHost(locked_buffer);
+    cudaFreeHost(locked_buffer_interleaved);
     cudaFree(output_buffer);
 }
 
-// unique_ptr<channelizer> create_chann(vector<complex<float>> coeff_arr)
-// {
-//     return make_unique<channelizer>(&coeff_arr[0]);
-// }
+unique_ptr<channelizer> create_chann(vector<complex<float>> coeff_arr)
+{
+    return make_unique<channelizer>(&coeff_arr[0]);
+}

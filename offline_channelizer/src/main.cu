@@ -41,30 +41,34 @@ int main()
         {
             cout << "Exception occured " << j << endl;
         }
-        // cout << arg << " " << sinc(arg) << " " << darg << " " << carg << " " << earg <<endl;
-        // float barg = sinc(arg) * cyl_bessel_if(0.0, ) / cyl_bessel_if(0.0, kbeta);cd
-        
     }
-
-    for (int k=0; k< 1280; k++)
-    {
-        cout << filter_function[k].real() << " " << filter_function[k].imag() << endl;
-    }    
+  
     auto obj_chann = channelizer(&filter_function[0]);
-
-    complex<float>* input = new complex<float>[Nch*Nslice];
+    // complex<float>* input = new complex<float>[Nch*Nslice];
+    float* input = new float [Nch*Nslice*2];
     complex<float>* output_gpu;
-    cudaMalloc((void **)&output_gpu, sizeof(cufftComplex) * Nch * Nslice*2);
-    for (int k=0; k<Nsamples; k++)
+    cudaMalloc((void **)&output_gpu, sizeof(complex<float>) * Nch * Nslice*2);
+    for (int k=0; k<2*Nsamples; k++)
     {
-        complex<float> t(sin(k), sinc(2.0 *k));
-        input[k] = t;
+        float complex_id = float(k / 2);
+        if (k%2 == 0)
+        {
+        input[k] = sin(complex_id);
+        }
+        else
+        {
+        input[k] = sinc(2.0*complex_id);
+        }  
     }
-    complex<float>* output_cpu = new complex<float>[10];
+    // for (int k=0; k<Nsamples; k++)
+    // {
+    //     complex<float> t(sin(k), sinc(2.0*k));
+    //     input[k] = t;
+    // }
 
+    complex<float>* output_cpu = new complex<float>[10];
     double total_duration = 0.0;
     int ntimes = 100;
-
     for (int i=0; i<ntimes; i++)
     {
         auto start = high_resolution_clock::now();
@@ -83,4 +87,32 @@ int main()
     delete [] input;
     cudaFree(output_gpu);
     delete [] output_cpu;
+    // float* input = new float [2*Nsamples];
+    // for (int k=0; k<2*Nsamples; k++)
+    // {
+    //     if (k%2 == 0)
+    //     {
+    //     input[k] = sin(k);
+    //     }
+    //     else
+    //     {
+    //     input[k] = sinc(2.0*k);
+    //     }  
+    // }
+    // float* input_gpu;
+    // cudaMalloc((void**)&input_gpu, 2*sizeof(float)*Nsamples);
+    // cudaMemcpy(input_gpu, input, sizeof(float)*2*Nsamples, cudaMemcpyHostToDevice);
+    // cufftComplex* output;
+    // cudaMalloc((void**)&output, sizeof(cufftComplex)*Nsamples);
+    // club<<<2*Nslice, Nch>>>(input_gpu, output, 2*Nsamples);
+    // cufftComplex* output_cpu = new cufftComplex [10];
+    // cudaMemcpy(output_cpu, output, sizeof(cufftComplex)*10, cudaMemcpyDeviceToHost);
+    // for (int i=0; i<10; i++)
+    // {
+    //     cout << output_cpu[i].x << " " << output_cpu[i].y << endl;
+    // }
+    // delete [] input;
+    // cudaFree(input_gpu);
+    // cudaFree(output);
+    // delete [] output_cpu;
 }
