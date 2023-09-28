@@ -1,1 +1,1 @@
-This is an implementation of the polyphase filter bank in the Rust programming language, which interfaces with CUDA GPU code for the performance critical aspects. The theory behind the filter bank is described in the single PDF file under the docs folder. 
+This is an implementation of the polyphase filter bank in the Rust programming language. The Rust code interfaces with CUDA GPU for performance critical aspects of the computation. The theory behind the filter bank is described in the single PDF file under the docs folder. 
