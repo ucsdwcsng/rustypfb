@@ -1,9 +1,13 @@
 #include "../include/offline_chann_C_interface.cuh"
+#include <stdio.h>
+#include <cmath>
+using std::cyl_bessel_if;
 
 extern "C"
 {
     chann* chann_create(complex<float>* coeff_arr)
     {
+        // printf("Creating channelizer on C side\n");
         return reinterpret_cast<chann*>(new channelizer(coeff_arr));
     }
 
@@ -19,8 +23,38 @@ extern "C"
 
     complex<float>* memory_allocate(int size)
     {
+        // printf("Memory is getting allocated in C\n");
         complex<float>* output;
         cudaMalloc((void**)&output, sizeof(complex<float>)*size);
         return output;
+    }
+
+    void memory_deallocate(complex<float>* inp)
+    {
+        // printf("Memory getting deallocated in C\n");
+        cudaFree(inp);
+    }
+
+    complex<float>* memory_allocate_cpu(int size)
+    {
+        // printf("Memory is getting allocated in C\n");
+        complex<float>* output = new complex<float> [size];
+        return output;
+    }
+
+    void memory_deallocate_cpu(complex<float>* inp)
+    {
+        // printf("Memory getting deallocated in C\n");
+        delete [] inp;
+    }
+
+    float bessel_func(float x)
+    {
+        return cyl_bessel_if(0.0, x);
+    }
+
+    void transfer(complex<float>* in, complex<float>* out, int size)
+    {
+        cudaMemcpy(out, in, sizeof(complex<float>)*size, cudaMemcpyDeviceToHost);
     }
 }

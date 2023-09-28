@@ -220,13 +220,21 @@ void channelizer::process(float* input, complex<float>* output)
     dim3 dimGridMultiply(GRIDSLICES, GRIDCHANNELS);
     memcpy(locked_buffer_interleaved, input, sizeof(float)*NCHANNEL*NSLICE);
     club<<<NSLICE, NCHANNEL>>>(locked_buffer_interleaved, locked_buffer, NSLICE*NCHANNEL);
+    // auto err_0 = cudaGetLastError();
+    // cout << cudaGetErrorString(err_0) << endl;
     cufftExecC2C(plan_0, locked_buffer, scratch_buffer, CUFFT_FORWARD);
     multiply<<<dimGridMultiply, dimBlockMultiply>>>(scratch_buffer, coeff_fft_polyphaseform, output_buffer);
+    // auto err_1 = cudaGetLastError();
+    // cout << cudaGetErrorString(err_1) << endl;
     cufftExecC2C(plan_1, output_buffer, output_buffer, CUFFT_INVERSE);
     scale<<<dimGridMultiply, dimBlockMultiply>>>(output_buffer, true);
+    // auto err_2 = cudaGetLastError();
+    // cout << cudaGetErrorString(err_2) << endl;
     cufftExecC2C(plan_2, output_buffer, output_buffer, CUFFT_INVERSE);
     scale<<<dimGridMultiply, dimBlockMultiply>>>(output_buffer, false);
     alias<<<dimGridMultiply, dimBlockMultiply>>>(output_buffer);
+    // auto err_3 = cudaGetLastError();
+    // cout << cudaGetErrorString(err_3) << endl;
     cudaMemcpy(output, output_buffer, sizeof(complex<float>)*NSLICE*NCHANNEL, cudaMemcpyDeviceToDevice);
 }
 

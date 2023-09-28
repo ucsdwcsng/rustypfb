@@ -1,5 +1,6 @@
 // #include "../include/cinterface.cuh"
 #include "../include/offline_channelizer.cuh"
+#include "../include/offline_chann_C_interface.cuh"
 #include <stdio.h>
 #include <cmath>
 #include <complex>
@@ -7,6 +8,7 @@
 #include <iostream>
 using namespace std::complex_literals;
 using std::chrono::high_resolution_clock;
+using std::chrono::steady_clock;
 using std::chrono::duration_cast;
 using std::chrono::duration;
 using std::cyl_bessel_if;
@@ -43,7 +45,8 @@ int main()
         }
     }
   
-    auto obj_chann = channelizer(&filter_function[0]);
+    // auto obj_chann = channelizer(&filter_function[0]);
+    chann* p_chann = chann_create(&filter_function[0]);
     // complex<float>* input = new complex<float>[Nch*Nslice];
     float* input = new float [Nch*Nslice*2];
     complex<float>* output_gpu;
@@ -71,9 +74,10 @@ int main()
     int ntimes = 100;
     for (int i=0; i<ntimes; i++)
     {
-        auto start = high_resolution_clock::now();
-        obj_chann.process(input, output_gpu);
-        auto end = high_resolution_clock::now();
+        auto start = steady_clock::now();
+        // obj_chann.process(input, output_gpu);
+        chann_process(p_chann, input, output_gpu);
+        auto end = steady_clock::now();
         double f = duration<double>(end-start).count();
         cudaMemcpy(output_cpu, output_gpu, sizeof(complex<float>)*10, cudaMemcpyDeviceToHost);
         for (int i=0; i<10; i++)
@@ -84,6 +88,7 @@ int main()
         total_duration += f;
     }
     std::cout << "Time taken in seconds to process " << Nsamples <<" samples into 1024 channels is " << (total_duration / ntimes) << std::endl;
+    chann_destroy(p_chann);
     delete [] input;
     cudaFree(output_gpu);
     delete [] output_cpu;
