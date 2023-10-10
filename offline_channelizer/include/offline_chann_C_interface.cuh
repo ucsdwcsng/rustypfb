@@ -8,7 +8,7 @@ typedef struct chann chann;
 
 extern "C"
 {
-    chann* chann_create(complex<float>*);
+    chann* chann_create(complex<float>*, int, int, int);
     void chann_destroy(chann*);
     void chann_process(chann*, float*, complex<float>*);
     complex<float>* memory_allocate(int);

@@ -15,10 +15,10 @@ using std::make_unique;
 using std::make_shared;
 
 
-void make_coeff_matrix(cufftComplex*, complex<float>*);
-void __global__ multiply(cufftComplex*, cufftComplex*, cufftComplex*);
-void __global__ scale(cufftComplex* , bool);
-void __global__ alias(cufftComplex*);
+void make_coeff_matrix(cufftComplex*, complex<float>*, int, int, int);
+void __global__ multiply(cufftComplex*, cufftComplex*, cufftComplex*, int, int, int);
+void __global__ scale(cufftComplex* , bool, int, int);
+void __global__ alias(cufftComplex*, int);
 void __global__ club(float*, cufftComplex*, int);
 
 class channelizer
@@ -27,6 +27,12 @@ class channelizer
     /*
      * Polyphase filter coefficients which have been filtered along slice dimension.
      */
+    int nchannel;
+    int nproto;
+    int nslice;
+
+    int gridslices;
+    int gridchannels;
     /*
      * Plan for taking the initial FFT of input samples on host along slice dimension. 
      * The input is arranged as given by the call to process:
@@ -63,7 +69,6 @@ class channelizer
      * and n_0 is the size of each FFT which is NSLICE.
      * 
      */
-
     cufftHandle plan_0;
     int istride_0;
     int ostride_0;
@@ -158,7 +163,7 @@ class channelizer
     /*
      * Constructor
      */
-    channelizer(complex<float>*);
+    channelizer(complex<float>*, int, int, int);
     // void process(complex<float>*, complex<float>*);
     void process(float*, complex<float>*);
     ~channelizer();

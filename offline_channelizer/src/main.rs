@@ -14,40 +14,49 @@ pub struct chann {
     _marker: core::marker::PhantomData<(*mut u8, core::marker::PhantomPinned)>,
 }
 
-/*
- * Rust declarations of C side helper functions that manipulate data on the GPU.
- *
- * 1. chann_create creates a channelizer object on the CUDA side,
- *    with various memory allocations for all the internal GPU buffers.
- *
- * 2. chann_destroy frees the memory occupied by the channelizer object.
- *
- * 3. chann_process performs the forward channelization process on
- * interleaved floats.
- *
- * 4. memory_allocate allocates memory on a GPU buffer and returns a pointer to the buffer.
- */
+///
+///Rust declarations of C side helper functions that manipulate data on the GPU.
 // #[link(name = "cufft", kind = "dylib")]
 extern "C" {
-    pub fn chann_create(coeff_arr: *mut Complex<f32>) -> *mut chann;
+    /// C side channelizer constructor. Inputs are filter coefficients, number of prototype filter taps per channel,
+    /// number of channels, and number of slices that we want to process per channel.
+    pub fn chann_create(coeff_arr: *mut Complex<f32>, nproto: i32, nchann: i32, nsl: i32) -> *mut chann;
+
+    /// Function that deallocates everything related to a channelizer. Calls the C++ destructor under the hood.
+    /// Needed because C style linkage does not allow implicit destructor calls.
     fn chann_destroy(channobj: *mut chann);
+
+    /// The function that does all the heavy lifting under the hood for processing the input data chunks into the 
+    /// specified number of channels. The output is written to a GPU array and outp points to that array.
     fn chann_process(channobj: *mut chann, inp: *mut f32, outp: *mut Complex<f32>);
+
+    /// Allocated GPU memory for the specified number of float 32s. Generics not allowed
+    /// for C style linkage, therefore, this only works for float 32s.
     fn memory_allocate(inp: i32) -> *mut Complex<f32>;
+
+    /// Deallocates memory on GPU that is pointed to by the input pointer.
     fn memory_deallocate(inp: *mut Complex<f32>);
+
+    /// CPU memory allocation function. Returns the pointer to the allocated heap memory.
     fn memory_allocate_cpu(inp: i32) -> *mut Complex<f32>;
+
+    /// Deallocates CPU memory pointed to by the input.
     fn memory_deallocate_cpu(inp:*mut Complex<f32>);
+
+    /// Bessel function computation that used C++17 cmath library. This is used because
+    /// I did not find any scientific Rust libraries that can compute these things faster than this.
     fn bessel_func(inp: f32) -> f32;
+
+    /// Function that transfers count number of f32s from GPU to CPU, with the input and output pointers specified.
     fn transfer(inp: *mut Complex<f32>, outp: *mut Complex<f32>, count: i32);
 }
 
-/*
- * This struct defines the Rust side interface to a GPU array of complex float 32 numbers.
- * The ptr field of this struct will NOT be dereferenced on the Rust side. All manipulations
- * of this field will occur in unsafe blocks inside member functions of the DevicePtr struct.
- * The functions on the CUDA side which will perform these manipulations
- * will be declared to have extern C linkage.
- */
 
+ ///This struct defines the Rust side interface to a GPU array of complex float 32 numbers.
+ ///The ptr field of this struct will NOT be dereferenced on the Rust side. All manipulations
+ ///of this field will occur in unsafe blocks inside member functions of the DevicePtr struct.
+ ///The functions on the CUDA side which will perform these manipulations
+ ///will be declared to have extern C linkage.
 pub struct DevicePtr {
     ptr: *mut Complex<f32>,
     size: i32,
@@ -87,12 +96,12 @@ pub struct RustChannelizer {
 }
 
 impl RustChannelizer {
-    pub fn new(inp: &[f32]) -> Self {
+    pub fn new(inp: &[f32], proto_taps:i32, channels: i32, slices: i32) -> Self {
         // println!("Chanelizer getting created\n");
         let mut complex_coeff_array: Vec<Complex<f32>> =
             inp.iter().map(|x| Complex::new(*x, 0.0)).collect();
         Self {
-            opaque_chann: unsafe { chann_create(complex_coeff_array.as_mut_ptr()) },
+            opaque_chann: unsafe { chann_create(complex_coeff_array.as_mut_ptr(), proto_taps, channels, slices) },
         }
     }
 
@@ -121,7 +130,7 @@ fn main() {
         coeff_array.push(unsafe { bessel_func(carg) / bessel_func(kbeta) });
     }
 
-    let mut chann_obj: RustChannelizer = RustChannelizer::new(coeff_array.as_mut_slice());
+    let mut chann_obj: RustChannelizer = RustChannelizer::new(coeff_array.as_mut_slice(), NPROTO, NCH, NSLICE);
     let mut output_buffer: DevicePtr = DevicePtr::new(NCH * NSLICE);
     let mut input_vec: Vec<f32> = Vec::new();
     for ind in 0..((2 * NSAMPLES) as usize) {

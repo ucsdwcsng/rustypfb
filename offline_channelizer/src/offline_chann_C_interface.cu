@@ -5,10 +5,9 @@ using std::cyl_bessel_if;
 
 extern "C"
 {
-    chann* chann_create(complex<float>* coeff_arr)
+    chann* chann_create(complex<float>* coeff_arr, int nprot, int nchann, int nsl)
     {
-        // printf("Creating channelizer on C side\n");
-        return reinterpret_cast<chann*>(new channelizer(coeff_arr));
+        return reinterpret_cast<chann*>(new channelizer(coeff_arr, nprot, nchann, nsl));
     }
 
     void chann_destroy(chann* inp)
@@ -31,20 +30,17 @@ extern "C"
 
     void memory_deallocate(complex<float>* inp)
     {
-        // printf("Memory getting deallocated in C\n");
         cudaFree(inp);
     }
 
     complex<float>* memory_allocate_cpu(int size)
     {
-        // printf("Memory is getting allocated in C\n");
         complex<float>* output = new complex<float> [size];
         return output;
     }
 
     void memory_deallocate_cpu(complex<float>* inp)
     {
-        // printf("Memory getting deallocated in C\n");
         delete [] inp;
     }
 
