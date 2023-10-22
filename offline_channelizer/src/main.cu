@@ -14,7 +14,7 @@ using std::chrono::duration;
 using std::cyl_bessel_if;
 using std::cout;
 using std::endl;
-
+using std::milli;
 using std::complex;
 
 float sinc(float x)
@@ -26,7 +26,7 @@ int main()
 {
     int Nsamples = 100000000;
     int Nch   = 1024;
-    int Nslice = 1024*128;
+    int Nslice = 2*1024*128;
     int Nproto = 100;
     float kbeta=9.6;
     vector<complex<float>> filter_function;
@@ -44,80 +44,45 @@ int main()
             cout << "Exception occured " << j << endl;
         }
     }
-  
-    // auto obj_chann = channelizer(&filter_function[0]);
-    chann* p_chann = chann_create(&filter_function[0]);
-    // complex<float>* input = new complex<float>[Nch*Nslice];
-    float* input = new float [Nch*Nslice*2];
-    complex<float>* output_gpu;
-    cudaMalloc((void **)&output_gpu, sizeof(complex<float>) * Nch * Nslice*2);
+    chann* p_chann = chann_create(&filter_function[0], Nproto, Nch, Nslice);
+    float* input = new float [Nch*(Nslice)];
+    cufftComplex* inp_c = new cufftComplex [Nch * Nslice / 2];
+    cufftComplex* output_gpu;
+    cufftComplex* output_cpu;
+    output_cpu = new cufftComplex [Nch*Nslice];
+    cudaMalloc((void **)&output_gpu, sizeof(cufftComplex) * Nch * Nslice);
     for (int k=0; k<2*Nsamples; k++)
     {
-        float complex_id = float(k / 2);
+        float inp_arg = static_cast<float>(k / 2);
         if (k%2 == 0)
         {
-        input[k] = sin(complex_id);
+            input[k] = sin(inp_arg);
         }
-        else
+        else 
         {
-        input[k] = sinc(2.0*complex_id);
-        }  
+            input[k] = sinc(2.0*inp_arg);
+        }
     }
-    // for (int k=0; k<Nsamples; k++)
-    // {
-    //     complex<float> t(sin(k), sinc(2.0*k));
-    //     input[k] = t;
-    // }
-
-    complex<float>* output_cpu = new complex<float>[10];
-    double total_duration = 0.0;
+    cout << "---------------------------------------" << endl;
+    float total_duration = 0.0;
+    float total_duration_cpy = 0.0;
     int ntimes = 100;
-    for (int i=0; i<ntimes; i++)
+    float milliseconds;
+    for (int i=0; i<10;i++)
     {
-        auto start = steady_clock::now();
-        // obj_chann.process(input, output_gpu);
-        chann_process(p_chann, input, output_gpu);
-        auto end = steady_clock::now();
-        double f = duration<double>(end-start).count();
-        cudaMemcpy(output_cpu, output_gpu, sizeof(complex<float>)*10, cudaMemcpyDeviceToHost);
-        for (int i=0; i<10; i++)
+        chann_process(p_chann, input, output_gpu, i);
+        total_duration += reinterpret_cast<channelizer*>(p_chann)->time;
+        total_duration_cpy += reinterpret_cast<channelizer*>(p_chann)->time_cpy;
+    }
+    transfer(output_gpu, output_cpu, 10);
+    //Check that results are legitimate.
+    for (int i=0; i< 10; i++)
     {
-        cout << output_cpu[i].real() << " " << output_cpu[i].imag() << endl;  
+        cout << output_cpu[i].x << " " << output_cpu[i].y << endl;
     }
-        cout << "-----------------------------------------" << endl;
-        total_duration += f;
-    }
-    std::cout << "Time taken in seconds to process " << Nsamples <<" samples into 1024 channels is " << (total_duration / ntimes) << std::endl;
+    std::cout << "Time taken in milliseconds to process " << Nsamples <<" samples into 1024 channels is " << (total_duration / 10) << " and time taken to copy is " << (total_duration_cpy / 10) << std::endl;
     chann_destroy(p_chann);
     delete [] input;
-    cudaFree(output_gpu);
     delete [] output_cpu;
-    // float* input = new float [2*Nsamples];
-    // for (int k=0; k<2*Nsamples; k++)
-    // {
-    //     if (k%2 == 0)
-    //     {
-    //     input[k] = sin(k);
-    //     }
-    //     else
-    //     {
-    //     input[k] = sinc(2.0*k);
-    //     }  
-    // }
-    // float* input_gpu;
-    // cudaMalloc((void**)&input_gpu, 2*sizeof(float)*Nsamples);
-    // cudaMemcpy(input_gpu, input, sizeof(float)*2*Nsamples, cudaMemcpyHostToDevice);
-    // cufftComplex* output;
-    // cudaMalloc((void**)&output, sizeof(cufftComplex)*Nsamples);
-    // club<<<2*Nslice, Nch>>>(input_gpu, output, 2*Nsamples);
-    // cufftComplex* output_cpu = new cufftComplex [10];
-    // cudaMemcpy(output_cpu, output, sizeof(cufftComplex)*10, cudaMemcpyDeviceToHost);
-    // for (int i=0; i<10; i++)
-    // {
-    //     cout << output_cpu[i].x << " " << output_cpu[i].y << endl;
-    // }
-    // delete [] input;
-    // cudaFree(input_gpu);
-    // cudaFree(output);
-    // delete [] output_cpu;
+    cudaFree(output_gpu);
 }

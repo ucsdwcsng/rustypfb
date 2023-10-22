@@ -2,6 +2,7 @@
 #define _CHANNELIZER_
 #include <cufft.h>
 #include <complex.h>
+#include <cuComplex.h>
 #include <memory>
 #include <vector>
 
@@ -20,6 +21,7 @@ void __global__ multiply(cufftComplex*, cufftComplex*, cufftComplex*, int, int, 
 void __global__ scale(cufftComplex* , bool, int, int);
 void __global__ alias(cufftComplex*, int);
 void __global__ club(float*, cufftComplex*, int);
+void transfer_intrinsic(float*, float*, size_t);
 
 class channelizer
 {
@@ -33,6 +35,9 @@ class channelizer
 
     int gridslices;
     int gridchannels;
+
+    cudaEvent_t start, stop;
+    float time, time_cpy;
     /*
      * Plan for taking the initial FFT of input samples on host along slice dimension. 
      * The input is arranged as given by the call to process:
@@ -150,22 +155,24 @@ class channelizer
 
     /*
      * Page locked memory on host which is accessible to both 
-     * device and host.
-     */
+     * device and host, used to hold the interleaved floats.
+    //  */
+    // float* locked_buffer_real;
+    // float* locked_buffer_imag;
     cufftComplex* locked_buffer;
 
-    /*
-     * Page locked memory on host which is accessible to both 
-     * device and host, used to hold the interleaved floats.
-     */
-    float* locked_buffer_interleaved;
+    complex<float>* input_buffer;
+    cufftComplex* input_buffer_device;
+    // cufftComplex* locked_buffer_unshaped;
+    // float* locked_buffer_input;
+    // int* mask;
 
     /*
      * Constructor
      */
     channelizer(complex<float>*, int, int, int);
-    // void process(complex<float>*, complex<float>*);
-    void process(float*, complex<float>*);
+    void process(float*, cufftComplex*);
+    // void process(float*, float*, complex<float>*);
     ~channelizer();
 };
 #endif

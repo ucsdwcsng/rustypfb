@@ -10,13 +10,14 @@ extern "C"
 {
     chann* chann_create(complex<float>*, int, int, int);
     void chann_destroy(chann*);
-    void chann_process(chann*, float*, complex<float>*);
-    complex<float>* memory_allocate(int);
-    void memory_deallocate(complex<float>*);
+    // void chann_process(chann*, float*, float*, complex<float>*);
+    void chann_process(chann*, float*, cufftComplex*, int);
+    cufftComplex* memory_allocate_device(int);
+    void memory_deallocate_device(cufftComplex*);
     complex<float>* memory_allocate_cpu(int);
     void memory_deallocate_cpu(complex<float>*);
     float bessel_func(float);
-    void transfer(complex<float>*, complex<float>*, int);
+    void transfer(cufftComplex*, cufftComplex*, int);
 }
 
 #endif

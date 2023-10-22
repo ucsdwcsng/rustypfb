@@ -1,7 +1,12 @@
 #include "../include/offline_chann_C_interface.cuh"
 #include <stdio.h>
 #include <cmath>
+#include <cstring>
+#include <iostream>
+using std::cout;
+using std::endl;
 using std::cyl_bessel_if;
+// using std::memcpy;
 
 extern "C"
 {
@@ -15,20 +20,29 @@ extern "C"
         delete reinterpret_cast<channelizer*>(inp);
     }
 
-    void chann_process(chann* chann, float* lhs, complex<float>* rhs)
+    void chann_process(chann* chann, float* input, cufftComplex* rhs, int j)
     {
-        reinterpret_cast<channelizer*>(chann)->process(lhs, rhs);
+        // int n = reinterpret_cast<channelizer*>(chann)->nchannel;
+        // int s = reinterpret_cast<channelizer*>(chann)->nslice;
+        // input[0] = static_cast<float>(j);
+        // memcpy(reinterpret_cast<channelizer*>(chann)->input_buffer, input, sizeof(float)*n*s);
+        // for(int i=0; i<30;i++)
+        // {
+        //     cout << (reinterpret_cast<channelizer*>(chann)->input_buffer)[i].x << " " << (reinterpret_cast<channelizer*>(chann)->input_buffer)[i].y << "---------------" << input[2*i] << " " << input[2*i + 1] << endl;
+        // }
+        // cout << "---------------------------------" << endl;
+        reinterpret_cast<channelizer*>(chann)->process(input, rhs);
     }
 
-    complex<float>* memory_allocate(int size)
+    cufftComplex* memory_allocate_device(int size)
     {
         // printf("Memory is getting allocated in C\n");
-        complex<float>* output;
-        cudaMalloc((void**)&output, sizeof(complex<float>)*size);
+        cufftComplex* output;
+        cudaMalloc((void**)&output, sizeof(cufftComplex)*size);
         return output;
     }
 
-    void memory_deallocate(complex<float>* inp)
+    void memory_deallocate_device(cufftComplex* inp)
     {
         cudaFree(inp);
     }
@@ -49,8 +63,8 @@ extern "C"
         return cyl_bessel_if(0.0, x);
     }
 
-    void transfer(complex<float>* in, complex<float>* out, int size)
+    void transfer(cufftComplex* in, cufftComplex* out, int size)
     {
-        cudaMemcpy(out, in, sizeof(complex<float>)*size, cudaMemcpyDeviceToHost);
+        cudaMemcpy(out, in, sizeof(cufftComplex)*size, cudaMemcpyDeviceToHost);
     }
 }

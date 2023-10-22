@@ -1,6 +1,7 @@
 use libm::sinf;
 use libm::sqrtf;
 use num::Complex;
+use std::time::Instant;
 use scilib::math::bessel::i_nu;
 /*
  * This is the Rust side declaration of the
@@ -119,7 +120,7 @@ impl Drop for RustChannelizer {
 
 fn main() {
     const NCH: i32 = 1024;
-    const NSLICE: i32 = 2 * 131072;
+    const NSLICE: i32 = 1024*128*2;
     const NPROTO: i32 = 100;
     const NSAMPLES: i32 = 100000000;
     let kbeta: f32 = 9.6;
@@ -140,6 +141,21 @@ fn main() {
             input_vec.push(sinf(ind as f32) / (ind as f32));
         }
     }
-    chann_obj.process(&mut input_vec, &mut output_buffer);
-    output_buffer.display(10);
+    let mut m :i32 = 0;
+    let mut tot: u128 = 0;
+    loop
+    {
+        m+=1;
+        let n = Instant::now();
+        chann_obj.process(&mut input_vec, &mut output_buffer);
+        let w = n.elapsed().as_millis();
+        tot += w;
+        // output_buffer.display(10);
+        // println!("In loop number {}", m);
+        if m == 100
+        {
+            break;
+        }
+    }
+    println!("Process calls take {} milliseconds on average", tot/100);
 }
