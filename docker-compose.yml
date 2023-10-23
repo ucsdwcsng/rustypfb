@@ -23,9 +23,9 @@ services:
     container_name: rust-cuda
     shm_size: '2048m'
     volumes:
-      - '/mnt/intA-ssdr0-1tb/srajagopal/:/mnt/intA-ssdr0-1tb/:rw'
-      - '/mnt/intB-ssdr0-240gb/srajagopal/:/mnt/intB-ssdr1-240gb/:rw'
-      - '/mnt/extC-hddr0-18tb/srajagopal/:/mnt/extC-hddr0-18tb/:rw'
+      - '/mnt/intA-hddr0-4tb/srajagopal/:/mnt/intA-hddr0-4tb/:rw'
+      - '/mnt/intB-hddr1-1tb/srajagopal/:/mnt/intB-hddr1-1tb/:rw'
+      - '/mnt/intC-ssdr0-2tb/srajagopal/:/mnt/extC-ssdr0-2tb/:rw'
       - '/mnt/s3fs/srajagopal/:/mnt/s3fs/:rw'
       - '/mnt/tmpfs/srajagopal/:/mnt/tmpfs/:rw'    
       - "vscode-config:/root/.vscode-server:rw"

@@ -21,7 +21,8 @@ void __global__ multiply(cufftComplex*, cufftComplex*, cufftComplex*, int, int, 
 void __global__ scale(cufftComplex* , bool, int, int);
 void __global__ alias(cufftComplex*, int);
 void __global__ club(float*, cufftComplex*, int);
-void transfer_intrinsic(float*, float*, size_t);
+// void transfer_intrinsic(float*, float*, size_t);
+// void naivetransfer(void*, void*, size_t);
 
 class channelizer
 {
@@ -154,25 +155,28 @@ class channelizer
     cufftComplex* scratch_buffer;
 
     /*
-     * Page locked memory on host which is accessible to both 
-     * device and host, used to hold the interleaved floats.
-    //  */
-    // float* locked_buffer_real;
-    // float* locked_buffer_imag;
-    cufftComplex* locked_buffer;
+     * Holds the reshaped inputs.
+     */
+    cufftComplex* reshaped_buffer;
 
-    complex<float>* input_buffer;
-    cufftComplex* input_buffer_device;
-    // cufftComplex* locked_buffer_unshaped;
-    // float* locked_buffer_input;
-    // int* mask;
+    /*
+     * Holds input on GPU.
+     */
+    cufftComplex* input_buffer;
 
     /*
      * Constructor
      */
     channelizer(complex<float>*, int, int, int);
+
+    /*
+     * Process function
+     */
     void process(float*, cufftComplex*);
-    // void process(float*, float*, complex<float>*);
+
+    /*
+     * Destructor
+     */
     ~channelizer();
 };
 #endif

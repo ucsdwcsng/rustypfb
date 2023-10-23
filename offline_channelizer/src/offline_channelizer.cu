@@ -1,11 +1,12 @@
 #include "../include/offline_channelizer.cuh"
+#include "/opt/asmlib/asmlib.h"
 #include <iostream>
 #include <vector>
 #include <omp.h>
 #include <stdio.h>
-#include <stdlib.h>
+// #include <string.h>
 #include <chrono>
-#include <immintrin.h>
+// #include <immintrin.h>
 using std::cout;
 using std::endl;
 using std::make_unique;
@@ -37,26 +38,26 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    }
 }
 
-void naivetransfer(void* pdest, void* psource, size_t num_bytes)
-{
-    char* pDest = (char* )pdest;
-    char* pSource = (char* )psource;
-    for (int i=0; i< num_bytes; i++)
-    {
-        *pDest++ = *pSource++;
-    }
-}
+// void naivetransfer(void* pdest, void* psource, size_t num_bytes)
+// {
+//     char* pDest = (char* )pdest;
+//     char* pSource = (char* )psource;
+//     for (int i=0; i< num_bytes; i++)
+//     {
+//         *pDest++ = *pSource++;
+//     }
+// }
 
-void transfer_intrinsic(float* outp, float* inp, size_t num_samples)
-{
-    {
-        for (int i=0; i<num_samples;i+=16)
-        {
-            __m512 a = _mm512_loadu_ps((__m512 *)(inp+i));
-            _mm512_storeu_ps(outp + i,a);
-        }
-    }
-}
+// void transfer_intrinsic(float* outp, float* inp, size_t num_samples)
+// {
+//     {
+//         for (int i=0; i<num_samples;i+=16)
+//         {
+//             __m512 a = _mm512_loadu_ps((__m512 *)(inp+i));
+//             _mm512_storeu_ps(outp + i,a);
+//         }
+//     }
+// }
 
 /*
  * Create the FFT version of the coefficient filters for non-maximal decimation.
@@ -222,22 +223,25 @@ void __global__ declub_fromstream(float* input, float* real, float* imag, int si
 channelizer::channelizer(complex<float> *coeff_arr, int npr, int nchan, int nsl)
 : nchannel{nchan}, nslice{nsl}, nproto{npr}, gridchannels{nchan / BLOCKCHANNELS}, gridslices{nsl / BLOCKSLICES} //, input_buffer(nchannel*nslice / 2)
 {
+    // Create CUDA events to calculate the running time on the default stream.
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
+
     // Allocate GPU memory for filter coefficients.
     cudaMalloc((void **)&coeff_fft_polyphaseform, sizeof(cufftComplex) * nchannel * nslice);
-    
-    // Allocate Pagelocked memory for input buffer on host
-    cudaMalloc((void **)&locked_buffer, sizeof(cufftComplex) * (nchannel / 2) * nslice);
 
-    // cudaMallocHost((void **)&input_buffer, sizeof(cufftComplex) * (nchannel / 2) * nslice);
-    input_buffer = (complex<float>* )malloc(sizeof(cufftComplex)*(nchannel / 2)*nslice);
-    auto err_t = cudaHostRegister(input_buffer, (nchannel / 2)*(nslice)*sizeof(cufftComplex), cudaHostRegisterMapped);
-    // // auto err_tt = cudaHostGetDevicePointer((void **)&input_device_ptr, (void* )input_buffer, 0);
-    cudaMalloc((void**)&input_buffer_device, sizeof(cufftComplex)*nchannel*nslice/2);
+    // Allocate GPU memory to hold the input on the GPU.
+    cudaMalloc((void**)&input_buffer, sizeof(cufftComplex)*nchannel*nslice/2);
+    
+    // Allocate GPU memory to hold reshaped input.
+    cudaMalloc((void **)&reshaped_buffer, sizeof(cufftComplex) * (nchannel / 2) * nslice);
+
+    // Allocate GPU memory to hold channelizer outputs.
     cudaMalloc((void **)&output_buffer, sizeof(cufftComplex) * nchannel * nslice);
-    // Allocate GPU memory for scratch buffer.
+
+    // Allocate GPU memory to hold intermediate scratch results.
     cudaMalloc((void **)&scratch_buffer, sizeof(cufftComplex) * (nchannel / 2) * nslice);
+
     /*
      * Initial FFT of input
      */
@@ -281,10 +285,9 @@ channelizer::channelizer(complex<float> *coeff_arr, int npr, int nchan, int nsl)
     onembed_2 = n_2;
     cufftPlanMany(&plan_2, 1, n_2, inembed_2, istride_2, idist_2, onembed_2, ostride_2, odist_2, CUFFT_C2C, batch_2);
     make_coeff_matrix(coeff_fft_polyphaseform, coeff_arr, nproto, nchannel, nslice);
-    // initialize_mask(mask, nchannel*nslice);
 }
 
-// void channelizer::process(float* input_real, float* input_imag, complex<float>* output)
+// input will be page locked on Host
 void channelizer::process(float* input, cufftComplex* output)
 {
     dim3 dimBlock(BLOCKCHANNELS, BLOCKSLICES);
@@ -292,48 +295,21 @@ void channelizer::process(float* input, cufftComplex* output)
     dim3 dimGridReshape(gridchannels / 2, gridslices);
     float duration_;
     time = 0.0;
-    auto start_time = steady_clock::now();
-    memcpy(input_buffer, input, sizeof(float)*nchannel*nslice);
-    auto end_time = steady_clock::now();
-    time += duration<float, milli>(end_time - start_time).count();
-    time_cpy = time;
-
     cudaEventRecord(start,0);
-    cudaMemcpy(input_buffer_device, input_buffer, sizeof(cufftComplex)*nchannel*nslice / 2, cudaMemcpyHostToDevice);
-    // time_cpy = duration<float, milli>(end_du - start_du).count();
-    // cudaMemcpy(input_buffer, input, sizeof(float)*nchannel*nslice, cudaMemcpyHostToHost);
-    reshape<<<dimGridReshape, dimBlock>>>(input_buffer_device, locked_buffer, nchannel, nslice);
-    // reshape<<<dimGridReshape, dimBlock>>>(input_buffer, locked_buffer, nchannel, nslice);
-    // auto err_t1 = cudaGetLastError();
-    // cout << cudaGetErrorString(err_t1) << endl;
-    cufftExecC2C(plan_0, locked_buffer, scratch_buffer, CUFFT_FORWARD);
-    // auto err_t0 = cudaGetLastError();
-    // cout << cudaGetErrorString(err_t0) << endl;
+    cudaMemcpy(input_buffer, input, sizeof(cufftComplex)*nchannel*nslice / 2, cudaMemcpyHostToDevice);
+    reshape<<<dimGridReshape, dimBlock>>>(input_buffer, reshaped_buffer, nchannel, nslice);
+    cufftExecC2C(plan_0, reshaped_buffer, scratch_buffer, CUFFT_FORWARD);
     multiply<<<dimGridMultiply, dimBlock>>>(scratch_buffer, coeff_fft_polyphaseform, output_buffer, nchannel, nslice, gridchannels);
-    // auto err_t1 = cudaGetLastError();
-    // cout << cudaGetErrorString(err_t1) << endl;
     cufftExecC2C(plan_1, output_buffer, output_buffer, CUFFT_INVERSE);
-    // auto err_t2 = cudaGetLastError();
-    // cout << cudaGetErrorString(err_t2) << endl;
     scale<<<dimGridMultiply, dimBlock>>>(output_buffer, true, nchannel, nslice);
-    // auto err_t3 = cudaGetLastError();
-    // cout << cudaGetErrorString(err_t3) << endl;
     cufftExecC2C(plan_2, output_buffer, output_buffer, CUFFT_INVERSE);
-    // auto err_t4 = cudaGetLastError();
-    // cout << cudaGetErrorString(err_t4) << endl;
     scale<<<dimGridMultiply, dimBlock>>>(output_buffer, false, nchannel, nslice);
-    // auto err_t5 = cudaGetLastError();
-    // cout << cudaGetErrorString(err_t5) << endl;
     alias<<<dimGridMultiply, dimBlock>>>(output_buffer, nslice);
-    // auto err_t6 = cudaGetLastError();
-    // cout << cudaGetErrorString(err_t6) << endl;
     cudaMemcpy(output, output_buffer, sizeof(cufftComplex)*nslice*nchannel, cudaMemcpyDeviceToDevice);
     cudaEventRecord(stop,0);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&duration_, start, stop);
     time += duration_;
-    // auto err_t7 = cudaGetLastError();
-    // cout << cudaGetErrorString(err_t7) << endl;
 }
 
 channelizer::~channelizer()
@@ -346,12 +322,9 @@ channelizer::~channelizer()
     delete [] n_0;
     delete [] n_1;
     delete [] n_2;
-    cudaHostUnregister(input_buffer);
-    free(input_buffer);
-    // cudaFreeHost(input_buffer);
-    cudaFree(input_buffer_device);
+    cudaFree(input_buffer);
     cudaFree(coeff_fft_polyphaseform);
     cudaFree(scratch_buffer);
-    cudaFree(locked_buffer);
+    cudaFree(reshaped_buffer);
     cudaFree(output_buffer);
 }
