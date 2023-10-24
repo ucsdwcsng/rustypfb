@@ -20,17 +20,8 @@ extern "C"
         delete reinterpret_cast<channelizer*>(inp);
     }
 
-    void chann_process(chann* chann, float* input, cufftComplex* rhs, int j)
+    void chann_process(chann* chann, float* input, cufftComplex* rhs)
     {
-        // int n = reinterpret_cast<channelizer*>(chann)->nchannel;
-        // int s = reinterpret_cast<channelizer*>(chann)->nslice;
-        // input[0] = static_cast<float>(j);
-        // memcpy(reinterpret_cast<channelizer*>(chann)->input_buffer, input, sizeof(float)*n*s);
-        // for(int i=0; i<30;i++)
-        // {
-        //     cout << (reinterpret_cast<channelizer*>(chann)->input_buffer)[i].x << " " << (reinterpret_cast<channelizer*>(chann)->input_buffer)[i].y << "---------------" << input[2*i] << " " << input[2*i + 1] << endl;
-        // }
-        // cout << "---------------------------------" << endl;
         reinterpret_cast<channelizer*>(chann)->process(input, rhs);
     }
 

@@ -24,6 +24,23 @@ float sinc(float x)
     return (x == 0.0) ? 1.0 : float(sin(x)/x);
 }
 
+void time_test(chann* p_chann, float* input, cufftComplex* output, int ntimes, float &time)
+{
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    float duration;
+    cudaEventRecord(start);
+    for (int i=0; i < ntimes; i++)
+    {
+        chann_process(p_chann, input, output);
+    }
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&duration, start, stop);
+    time += duration;
+}
+
 int main()
 {
     int Nsamples = 100000000;
@@ -67,19 +84,9 @@ int main()
         }
     }
     cout << "---------------------------------------" << endl;
-    float total_duration;
-    for (int i=0; i<10;i++)
-    {
-        chann_process(p_chann, input, output_gpu, i);
-        total_duration += reinterpret_cast<channelizer*>(p_chann)->time;
-    }
-    transfer(output_gpu, output_cpu, 10);
-    //Check that results are legitimate.
-    for (int i=0; i< 10; i++)
-    {
-        cout << output_cpu[i].x << " " << output_cpu[i].y << endl;
-    }
-    std::cout << "Time taken in milliseconds to copy 10^8 samples is " << (total_duration / 10) << std::endl;
+    float time;
+    time_test(p_chann, input, output_gpu, 50, time);
+    cout << "Channelization of " << Nsamples << " into 1024 channels takes " << time / 50 << " in milliseconds" << endl; 
     chann_destroy(p_chann);
     delete [] input;
     delete [] output_cpu;

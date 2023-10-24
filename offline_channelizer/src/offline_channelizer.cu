@@ -38,27 +38,6 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    }
 }
 
-// void naivetransfer(void* pdest, void* psource, size_t num_bytes)
-// {
-//     char* pDest = (char* )pdest;
-//     char* pSource = (char* )psource;
-//     for (int i=0; i< num_bytes; i++)
-//     {
-//         *pDest++ = *pSource++;
-//     }
-// }
-
-// void transfer_intrinsic(float* outp, float* inp, size_t num_samples)
-// {
-//     {
-//         for (int i=0; i<num_samples;i+=16)
-//         {
-//             __m512 a = _mm512_loadu_ps((__m512 *)(inp+i));
-//             _mm512_storeu_ps(outp + i,a);
-//         }
-//     }
-// }
-
 /*
  * Create the FFT version of the coefficient filters for non-maximal decimation.
  */
@@ -95,37 +74,28 @@ void make_coeff_matrix(cufftComplex* gpu, complex<float>* inp, int nproto, int n
 
 }
 
-void initialize_mask(int* input_mask, int size)
-{
-    for (int i=0; i<size; i++)
-    {
-        input_mask[i] = i/2;
-    }
-}
-
 void __global__ multiply(cufftComplex* inp, cufftComplex* coeff, cufftComplex* output, int nchannel, int nslice, int griddim)
 {
-    int half = blockIdx.y;
+    int half         = blockIdx.y;
     int input_xcoord = blockIdx.x * blockDim.x + threadIdx.x;
-    int raw_ycoord = blockIdx.y * blockDim.y + threadIdx.y;
-    int output_id = (nchannel - raw_ycoord) * nslice + input_xcoord;
+    int raw_ycoord   = blockIdx.y * blockDim.y + threadIdx.y;
+    int output_id    = raw_ycoord * nslice + input_xcoord;
+    // int coeff_id     = output_id;
     int input_ycoord;
-    int inp_id;
-    int coeff_id;
+    int input_id;
     if (half < (griddim / 2))
     {
         input_ycoord = raw_ycoord;
-        inp_id = input_ycoord*nslice + input_xcoord;
-        coeff_id = inp_id;
+        // coeff_id     = input_ycoord*nslice + input_xcoord;
     }
     else
     {
         input_ycoord = raw_ycoord - (griddim / 2)*blockDim.y; //(blockIdx.y - HALFSUBCHANNELS) * blockDim.y + threadIdx.y;
-        inp_id = input_ycoord*nslice + input_xcoord;
-        coeff_id = (nchannel*nslice / 2) + inp_id;
+        // coeff_id     = (nchannel*nslice / 2) + input_ycoord*nslice + input_xcoord;
     }
-    cufftComplex lhs = inp[inp_id];
-    cufftComplex rhs = coeff[coeff_id];
+    input_id         = (nchannel / 2 - input_ycoord)*nslice + input_xcoord;
+    cufftComplex lhs = inp[input_id];
+    cufftComplex rhs = coeff[output_id];
     output[output_id] = make_cuComplex(lhs.x* rhs.x - lhs.y * rhs.y, lhs.x * rhs.y + lhs.y * rhs.x);
 }
 
@@ -168,8 +138,6 @@ void __global__ reshape(cufftComplex* inp, cufftComplex* output, int nchannel, i
     __syncthreads();
     int output_grid_y_coord = (blockIdx.x * blockDim.x + threadIdx.y) * nslice;
     int output_grid_x_coord = blockIdx.y * blockDim.y + threadIdx.x;
-    // int output_x_coord = blockIdx.y * blockDim.y + threadIdx.x;
-    // int output_y_coord = blockIdx.x * blockDim.x + threadIdx.y;
     auto outer = output + output_grid_y_coord + output_grid_x_coord;
     (*outer) = tile[threadIdx.y][threadIdx.x];
 }
@@ -224,8 +192,8 @@ channelizer::channelizer(complex<float> *coeff_arr, int npr, int nchan, int nsl)
 : nchannel{nchan}, nslice{nsl}, nproto{npr}, gridchannels{nchan / BLOCKCHANNELS}, gridslices{nsl / BLOCKSLICES} //, input_buffer(nchannel*nslice / 2)
 {
     // Create CUDA events to calculate the running time on the default stream.
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
+    // cudaEventCreate(&start);
+    // cudaEventCreate(&stop);
 
     // Allocate GPU memory for filter coefficients.
     cudaMalloc((void **)&coeff_fft_polyphaseform, sizeof(cufftComplex) * nchannel * nslice);
@@ -293,9 +261,9 @@ void channelizer::process(float* input, cufftComplex* output)
     dim3 dimBlock(BLOCKCHANNELS, BLOCKSLICES);
     dim3 dimGridMultiply(gridslices, gridchannels);
     dim3 dimGridReshape(gridchannels / 2, gridslices);
-    float duration_;
-    time = 0.0;
-    cudaEventRecord(start,0);
+    // float duration_;
+    // time = 0.0;
+    // cudaEventRecord(start,0);
     cudaMemcpy(input_buffer, input, sizeof(cufftComplex)*nchannel*nslice / 2, cudaMemcpyHostToDevice);
     reshape<<<dimGridReshape, dimBlock>>>(input_buffer, reshaped_buffer, nchannel, nslice);
     cufftExecC2C(plan_0, reshaped_buffer, scratch_buffer, CUFFT_FORWARD);
@@ -306,10 +274,10 @@ void channelizer::process(float* input, cufftComplex* output)
     scale<<<dimGridMultiply, dimBlock>>>(output_buffer, false, nchannel, nslice);
     alias<<<dimGridMultiply, dimBlock>>>(output_buffer, nslice);
     cudaMemcpy(output, output_buffer, sizeof(cufftComplex)*nslice*nchannel, cudaMemcpyDeviceToDevice);
-    cudaEventRecord(stop,0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&duration_, start, stop);
-    time += duration_;
+    // cudaEventRecord(stop,0);
+    // cudaEventSynchronize(stop);
+    // cudaEventElapsedTime(&duration_, start, stop);
+    // time += duration_;
 }
 
 channelizer::~channelizer()
@@ -317,8 +285,8 @@ channelizer::~channelizer()
     cufftDestroy(plan_0);
     cufftDestroy(plan_1);
     cufftDestroy(plan_2);
-    cudaEventDestroy(start);
-    cudaEventDestroy(stop);
+    // cudaEventDestroy(start);
+    // cudaEventDestroy(stop);
     delete [] n_0;
     delete [] n_1;
     delete [] n_2;

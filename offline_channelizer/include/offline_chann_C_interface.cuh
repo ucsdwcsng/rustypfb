@@ -11,7 +11,7 @@ extern "C"
     chann* chann_create(complex<float>*, int, int, int);
     void chann_destroy(chann*);
     // void chann_process(chann*, float*, float*, complex<float>*);
-    void chann_process(chann*, float*, cufftComplex*, int);
+    void chann_process(chann*, float*, cufftComplex*);
     cufftComplex* memory_allocate_device(int);
     void memory_deallocate_device(cufftComplex*);
     complex<float>* memory_allocate_cpu(int);

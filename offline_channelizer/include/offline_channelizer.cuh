@@ -37,8 +37,8 @@ class channelizer
     int gridslices;
     int gridchannels;
 
-    cudaEvent_t start, stop;
-    float time, time_cpy;
+    // cudaEvent_t start, stop;
+    // float time, time_cpy;
     /*
      * Plan for taking the initial FFT of input samples on host along slice dimension. 
      * The input is arranged as given by the call to process:
