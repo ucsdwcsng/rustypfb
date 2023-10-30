@@ -8,6 +8,7 @@
 #include <complex>
 #include <chrono>
 #include <iostream>
+#include <fstream>
 using namespace std::complex_literals;
 using std::chrono::high_resolution_clock;
 using std::chrono::steady_clock;
@@ -18,6 +19,8 @@ using std::cout;
 using std::endl;
 using std::milli;
 using std::complex;
+using std::ifstream;
+using std::ofstream;
 
 float sinc(float x)
 {
@@ -26,6 +29,7 @@ float sinc(float x)
 
 void time_test(chann* p_chann, float* input, cufftComplex* output, int ntimes, float &time)
 {
+    time = 0.0;
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -41,21 +45,51 @@ void time_test(chann* p_chann, float* input, cufftComplex* output, int ntimes, f
     time += duration;
 }
 
+void write_to_file(cufftComplex* inp, int size)
+{
+    ofstream myfile;
+    myfile.open("../prototype_filter.32cf");
+    // for (int j=0; j<size; j++)
+    // {
+    //     myfile << inp[j].x << "\n";
+    //     myfile << inp[j].y << "\n";
+    // }
+    myfile.write((char*)inp, sizeof(float)*size*2);
+    myfile.close();
+}
+
 int main()
 {
-    int Nsamples = 100000000;
-    const int Nch   = 1024;
-    const int Nslice = 2*1024*128;
-    int Nproto = 100;
-    float kbeta=9.6;
+    /*
+     * Example 1 
+     */
+    int Nsamples = 20000000;
+    int Nch      = 1024;
+    int Nslice   = 2*1024*128;
+    ifstream file;
+    file.open("../../busyBand/DSSS.32cf");
+    float* input_cpu;
+    input_cpu = new float [Nch*Nslice];
+    file.read((char*) input_cpu, sizeof(float)*Nsamples*2);
+    file.close();
+
+    // for (int i=0; i<100;i++)
+    // {
+    //     cout << input_cpu[i] << endl;
+    // }
+    // int Nsamples = 1024;
+    // const int Nch   = 32;
+    // const int Nslice = 32;
+    int   Nproto = 128;
+    float kbeta  = 10.0;
     vector<complex<float>> filter_function;
     for (int j=0; j<Nch*Nproto; j++)
     {
-        float arg = Nproto / 2 + static_cast<float>(j + 1) / Nch;
+        float arg  =  - Nproto / 2 + static_cast<float>(j + 1) / Nch;
         float darg = static_cast<float>(2 * j) / static_cast<float>(Nch*Nproto) - 1.0;
         float carg = kbeta * sqrt(1-darg*darg);
         try{
-        float earg = cyl_bessel_if(0.0, carg) / cyl_bessel_if(0.0, kbeta);
+        float earg = cyl_bessel_if(0.0, carg) / cyl_bessel_if(0.0, kbeta) * sinc(arg);
         filter_function.push_back(complex<float>(earg, 0.0));
         }
         catch(int num)
@@ -63,32 +97,92 @@ int main()
             cout << "Exception occured " << j << endl;
         }
     }
+
     chann* p_chann = chann_create(&filter_function[0], Nproto, Nch, Nslice);
-    float* input = new float [Nch*(Nslice)];
-    // cufftComplex* inp_c = new cufftComplex [Nch * Nslice / 2];
+    // float* input = new float [Nch*(Nslice)];
     cufftComplex* output_gpu;
+    cudaMalloc((void **)&output_gpu, sizeof(cufftComplex) * Nch * Nslice);
+
+    float* input_buffer = new float [Nch*Nslice];
+    cudaHostRegister(input_buffer, sizeof(float)*Nch*Nslice, cudaHostRegisterMapped);
+
+    for (int i=0; i< 100; i++)
+    {
+        cout << input_cpu[i] << endl;
+    }
+    cout << "---------------------" << endl;
+
+    memcpy(input_buffer, input_cpu, sizeof(float)*Nsamples*2);
+
+    // for (int i=0; i< 100; i++)
+    // {
+    //     cout << input_buffer[i] << endl;
+    // }
+
     cufftComplex* output_cpu;
     output_cpu = new cufftComplex [Nch*Nslice];
-    cudaMalloc((void **)&output_gpu, sizeof(cufftComplex) * Nch * Nslice);
-    cudaHostRegister(input, sizeof(float)*Nch*Nslice, cudaHostRegisterMapped);
-    for (int k=0; k<2*Nsamples; k++)
-    {
-        float inp_arg = static_cast<float>(k / 2);
-        if (k%2 == 0)
-        {
-            input[k] = sin(inp_arg);
-        }
-        else 
-        {
-            input[k] = sinc(2.0*inp_arg);
-        }
-    }
-    cout << "---------------------------------------" << endl;
+
     float time;
-    time_test(p_chann, input, output_gpu, 50, time);
-    cout << "Channelization of " << Nsamples << " into 1024 channels takes " << time / 50 << " in milliseconds" << endl; 
+    time_test(p_chann, input_buffer, output_gpu, 20, time);
+
+    cout << "Time taken to process 2.68 x 10^8 samples is " << (time / 20) << endl;
+
+    // chann_process(p_chann, input_buffer, output_gpu);
+    // transfer(output_gpu, output_cpu, Nch*Nslice);
+
+    // cout << "----------------------------" << endl;
+    // for (int i=0; i< 100; i++)
+    // {
+    //     cout << output_cpu[i].x << " " << output_cpu[i].y << endl;
+    // }
+
+    // write_to_file(output_cpu, Nch*Nslice);
+
     chann_destroy(p_chann);
-    delete [] input;
-    delete [] output_cpu;
+
     cudaFree(output_gpu);
+    delete [] output_cpu;
+
+    cudaHostUnregister(input_buffer);
+    delete [] input_buffer;
+
+    delete [] input_cpu;
+
+    // write_to_file(reinterpret_cast<cufftComplex*>(&filter_function[0]), Nch*Nproto);
+
+    /* Reshape Test*/
+    // cufftComplex* test = new cufftComplex [30*10]; 
+    // cufftComplex* test_gpu;
+    // cufftComplex* test_gpu_output;
+
+    // for (int i=0; i<300; i++)
+    // {
+    //     test[i] = make_cuComplex(i, i*i);
+    // }
+    // cufftComplex* test_cpu = new cufftComplex [30*10];
+
+    // cudaMalloc((void**)&test_gpu, sizeof(cufftComplex)*30*10);
+    // cudaMalloc((void**)&test_gpu_output, sizeof(cufftComplex)*30*10);
+
+    // cudaMemcpy(test_gpu, test, sizeof(cufftComplex)*300, cudaMemcpyHostToDevice);
+    // dim3 block(5,5);
+    // dim3 grid(1,12);
+    // reshape<<<grid, block>>>(test_gpu, test_gpu_output, 10, 60);
+    // auto err = cudaGetLastError();
+    // cout << cudaGetErrorString(err) << endl;
+    // cudaMemcpy(test_cpu, test_gpu_output, sizeof(cufftComplex)*300, cudaMemcpyDeviceToHost);
+
+    // for (int i=0; i<5; i++)
+    // {
+    //     cout << "---------------------------" << endl;
+    //     for(int j=0; j<60; j++)
+    //     {
+    //         cout << test_cpu[i*60+j].x << " " << test_cpu[i*60+j].y << endl;
+    //     }
+    // }
+
+    // delete [] test_cpu;
+    // delete [] test;
+    // cudaFree(test_gpu);
+    // cudaFree(test_gpu_output);
 }

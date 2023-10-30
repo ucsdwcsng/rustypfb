@@ -21,6 +21,7 @@ void __global__ multiply(cufftComplex*, cufftComplex*, cufftComplex*, int, int, 
 void __global__ scale(cufftComplex* , bool, int, int);
 void __global__ alias(cufftComplex*, int);
 void __global__ club(float*, cufftComplex*, int);
+void __global__ reshape(cufftComplex*, cufftComplex*, int, int);
 // void transfer_intrinsic(float*, float*, size_t);
 // void naivetransfer(void*, void*, size_t);
 

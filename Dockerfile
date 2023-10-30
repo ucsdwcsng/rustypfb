@@ -27,6 +27,8 @@ RUN apt-get update && apt-get install -y cuda-nsight-systems-11-8
 
 RUN apt-get update && apt-get install -y zip 
 
+RUN pip install numpy scipy matplotlib
+
 # This step builds and installs Clang+LLVM toolchain from source that matches the version the 
 # Rust compiler uses. Openmp is also enabled.
 # LLVM gets installed in opt/llvm

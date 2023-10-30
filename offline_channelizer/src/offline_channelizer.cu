@@ -96,7 +96,7 @@ void __global__ multiply(cufftComplex* inp, cufftComplex* coeff, cufftComplex* o
     input_id         = (nchannel / 2 - input_ycoord)*nslice + input_xcoord;
     cufftComplex lhs = inp[input_id];
     cufftComplex rhs = coeff[output_id];
-    output[output_id] = make_cuComplex(lhs.x* rhs.x - lhs.y * rhs.y, lhs.x * rhs.y + lhs.y * rhs.x);
+    output[output_id] = make_cuComplex(lhs.x*rhs.x - lhs.y*rhs.y, lhs.x*rhs.y + lhs.y*rhs.x);
 }
 
 void __global__ scale(cufftComplex* inp, bool row, int nchannel, int nslice)
@@ -128,6 +128,7 @@ void __global__ alias(cufftComplex* inp, int nslice)
     }
 }
 
+// This reshape function has been tested to be correct
 void __global__ reshape(cufftComplex* inp, cufftComplex* output, int nchannel, int nslice)
 {
     __shared__ cufftComplex tile[BLOCKCHANNELS][BLOCKSLICES];
