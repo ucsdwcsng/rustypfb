@@ -84,7 +84,7 @@ pub fn create_filter(taps: usize, channels: usize) -> Vec<Vec<Complex<f32>>> {
 
 pub fn create_state(taps: usize, channels: usize) -> Vec<Queue<Complex<f32>>> {
     let mut outp: Vec<Queue<Complex<f32>>> = Vec::new();
-    for chann in 0..channels {
+    for chann in 0..(channels / 2) {
         outp.push(Queue::new(2 * taps));
     }
     outp
@@ -103,7 +103,6 @@ impl Channelizer {
             plan: Radix4::new(channels, rustfft::FftDirection::Inverse),
             internal_buffers: create_state(taps, channels),
             pre_out_buffer: vec![Complex::new(0.0, 0.0); channels],
-            // out_buffer: vec![Complex::new(0.0, 0.0); channels],
             scratch_buffer: vec![Complex::new(0.0, 0.0); channels],
         }
     }
@@ -111,7 +110,7 @@ impl Channelizer {
         self.internal_buffers
             .par_iter_mut()
             .enumerate()
-            .for_each(|(ind, item)| item.add(sample_arr[self.nchannels - ind]));
+            .for_each(|(ind, item)| item.add(sample_arr[self.nchannels / 2 - ind]));
 
         (self.pre_out_buffer)
             .par_iter_mut()
@@ -133,8 +132,14 @@ pub fn buffer_process(
     id: usize,
 ) -> Complex<f32> {
     let mut sum = Complex { re: 0.0, im: 0.0 };
-    for (ind, item) in lhs[id].buffer.iter().enumerate() {
-        sum += (*item) * (rhs[id][ind]);
+    let nchannels = rhs.len();
+    let reduced_ind = if id < nchannels / 2 {
+        id
+    } else {
+        id - nchannels / 2
+    };
+    for (ind, item) in rhs[id].iter().enumerate() {
+        sum += (*item) * (lhs[reduced_ind].buffer)[ind];
     }
     sum
 }

@@ -1,8 +1,6 @@
-// #include "../include/cinterface.cuh"
 #include "../include/offline_channelizer.cuh"
 #include "../include/offline_chann_C_interface.cuh"
 #include "/opt/asmlib/asmlib.h"
-// #include <string.h>
 #include <stdio.h>
 #include <cmath>
 #include <complex>
