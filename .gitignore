@@ -1,4 +1,9 @@
 **/target
+**/.vscode
+**/*.png
+**/*.txt
+**/*.32cf
 **/debug
 **/build
 **/Cargo.lock
+**/busyBand
