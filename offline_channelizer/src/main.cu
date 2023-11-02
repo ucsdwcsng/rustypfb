@@ -65,7 +65,7 @@ int main()
     int Nch      = 1024;
     int Nslice   = 2*1024*128;
     ifstream file;
-    file.open("../../busyBand/DSSS.32cf");
+    file.open("../busyBand/DSSS.32cf");
     float* input_cpu;
     input_cpu = new float [Nch*Nslice];
     file.read((char*) input_cpu, sizeof(float)*Nsamples*2);

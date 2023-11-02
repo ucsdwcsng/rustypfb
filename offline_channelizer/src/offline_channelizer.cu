@@ -143,51 +143,60 @@ void __global__ reshape(cufftComplex* inp, cufftComplex* output, int nchannel, i
     (*outer) = tile[threadIdx.y][threadIdx.x];
 }
 
-// This is a very slow CUDA kernel, because of strided access
-void __global__ club(float* inp, cufftComplex* output, int size)
+void __global__ fft_shift(cufftComplex* inp, int nslice, bool row)
 {
-    int id = blockIdx.x * blockDim.x + threadIdx.x;
-    int out_id = static_cast<int>(id / 2);
-    // printf("%d\n", id);
-    if (id < size)
-    {
-        // printf("Inside Kernel function\n");
-        if (id%2 == 0)
-        {
-            output[out_id].x = inp[id];
-        }
-        // printf("%f %f\n", output[out_id].x, output[out_id].y);
-        else 
-        {
-            output[out_id].y = inp[id];
-        }
-    }
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int idy = blockIdx.y * blockDim.y + threadIdx.y;
+    int id = idy*nslice + idx;
+    int sign = row ? (1-2*(idx % 2)) : (1-2*(idy % 2));
+    inp[id] = make_cuComplex(sign*inp[id].x, sign*inp[id].y);
 }
 
-void __global__ club_fromstream(float* real, float* imag, cufftComplex* output, int size)
-{
-    int id = blockIdx.x * blockDim.x + threadIdx.x;
-    if (id < size)
-    {
-        output[id] = make_cuComplex(real[id], imag[id]);
-    }
-}
+// // This is a very slow CUDA kernel, because of strided access
+// void __global__ club(float* inp, cufftComplex* output, int size)
+// {
+//     int id = blockIdx.x * blockDim.x + threadIdx.x;
+//     int out_id = static_cast<int>(id / 2);
+//     // printf("%d\n", id);
+//     if (id < size)
+//     {
+//         // printf("Inside Kernel function\n");
+//         if (id%2 == 0)
+//         {
+//             output[out_id].x = inp[id];
+//         }
+//         // printf("%f %f\n", output[out_id].x, output[out_id].y);
+//         else 
+//         {
+//             output[out_id].y = inp[id];
+//         }
+//     }
+// }
 
-void __global__ declub_fromstream(float* input, float* real, float* imag, int size, int* mask)
-{
-    int id = blockIdx.x * blockDim.x + threadIdx.x;
-    if (id < size)
-    {
-        if (id%2 == 0)
-        {
-            real[mask[id]] = input[id];
-        }
-        else
-        {
-            imag[mask[id]] = input[id];
-        }
-    }
-}
+// void __global__ club_fromstream(float* real, float* imag, cufftComplex* output, int size)
+// {
+//     int id = blockIdx.x * blockDim.x + threadIdx.x;
+//     if (id < size)
+//     {
+//         output[id] = make_cuComplex(real[id], imag[id]);
+//     }
+// }
+
+// void __global__ declub_fromstream(float* input, float* real, float* imag, int size, int* mask)
+// {
+//     int id = blockIdx.x * blockDim.x + threadIdx.x;
+//     if (id < size)
+//     {
+//         if (id%2 == 0)
+//         {
+//             real[mask[id]] = input[id];
+//         }
+//         else
+//         {
+//             imag[mask[id]] = input[id];
+//         }
+//     }
+// }
 
 channelizer::channelizer(complex<float> *coeff_arr, int npr, int nchan, int nsl)
 : nchannel{nchan}, nslice{nsl}, nproto{npr}, gridchannels{nchan / BLOCKCHANNELS}, gridslices{nsl / BLOCKSLICES} //, input_buffer(nchannel*nslice / 2)
@@ -271,6 +280,7 @@ void channelizer::process(float* input, cufftComplex* output)
     multiply<<<dimGridMultiply, dimBlock>>>(scratch_buffer, coeff_fft_polyphaseform, output_buffer, nchannel, nslice, gridchannels);
     cufftExecC2C(plan_1, output_buffer, output_buffer, CUFFT_INVERSE);
     scale<<<dimGridMultiply, dimBlock>>>(output_buffer, true, nchannel, nslice);
+    // fft_shift<<<dimGridMultiply, dimBlock>>>(output_buffer, nslice, false);
     cufftExecC2C(plan_2, output_buffer, output_buffer, CUFFT_INVERSE);
     scale<<<dimGridMultiply, dimBlock>>>(output_buffer, false, nchannel, nslice);
     alias<<<dimGridMultiply, dimBlock>>>(output_buffer, nslice);

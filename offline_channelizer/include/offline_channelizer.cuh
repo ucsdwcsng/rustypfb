@@ -20,10 +20,21 @@ void make_coeff_matrix(cufftComplex*, complex<float>*, int, int, int);
 void __global__ multiply(cufftComplex*, cufftComplex*, cufftComplex*, int, int, int);
 void __global__ scale(cufftComplex* , bool, int, int);
 void __global__ alias(cufftComplex*, int);
-void __global__ club(float*, cufftComplex*, int);
+// void __global__ club(float*, cufftComplex*, int);
 void __global__ reshape(cufftComplex*, cufftComplex*, int, int);
-// void transfer_intrinsic(float*, float*, size_t);
-// void naivetransfer(void*, void*, size_t);
+void __global__ fft_shift(cufftComplex*, int, bool);
+
+/*
+ * Specifies the time frequency Box that needs to be reverted.
+ */
+class Box
+{
+    public:
+        int center_freq;
+        int center_sample;
+        int nchannels;
+        int nslices;
+};
 
 class channelizer
 {
