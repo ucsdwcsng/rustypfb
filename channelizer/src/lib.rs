@@ -46,11 +46,11 @@ impl Drop for DevicePtr {
     }
 }
 
-pub struct RustChannelizer {
+pub struct ChunkChannelizer {
     opaque_chann: *mut Chann,
 }
 
-impl RustChannelizer {
+impl ChunkChannelizer {
     pub fn new(inp: &[f32], proto_taps: i32, channels: i32, slices: i32) -> Self {
         // println!("Chanelizer getting created\n");
         let mut complex_coeff_array: Vec<Complex<f32>> =
@@ -72,7 +72,7 @@ impl RustChannelizer {
     }
 }
 
-impl Drop for RustChannelizer {
+impl Drop for ChunkChannelizer {
     fn drop(&mut self) {
         // println!("Channelizer destroyed!");
         unsafe { chann_destroy(self.opaque_chann) };

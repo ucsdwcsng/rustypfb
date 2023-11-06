@@ -39,7 +39,7 @@ impl<T> Queue<T> {
  Updates outputs one slice across channels at a time.
  This is maximally decimating.
 */
-pub struct Channelizer {
+pub struct StreamChannelizer {
     // This is the number of channels.
     nchannels: usize,
 
@@ -94,9 +94,9 @@ pub fn channel_fn(ind: usize) -> f32 {
     todo!();
 }
 
-impl Channelizer {
+impl StreamChannelizer {
     pub fn new(taps: usize, channels: usize) -> Self {
-        Channelizer {
+        StreamChannelizer {
             nchannels: channels,
             ntaps: taps,
             coeff: create_filter(taps, channels),
