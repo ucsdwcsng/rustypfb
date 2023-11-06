@@ -8,7 +8,7 @@ The folder structure of this repo is as follows :
 
 1. The offlinepfb folder contains the native C++ code that performs the bulk of the offline channelizer computation.
 2. The offlinepfb-sys folder contains the unsafe Rust bindings to the functions and methods that have been defined in the previous point. This is a sys-crate (that has nevertheless not yet been published to crates.io).
-3. The channelizer folder is the Rust module that defines the higher level Rust bindings to the sys crate. 
+3. The channelizer folder is the Rust module that defines the higher level Rust bindings to the sys crate above. 
 4. The streaming_channelizer folder is a simple Rust module that contains the implementations required for the online channelizer.
 
 For a typical user of this repo, these are the steps that need to be followed for setting things up if you want to use the offline channelizer :
