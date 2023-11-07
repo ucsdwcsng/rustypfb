@@ -1,10 +1,8 @@
-use libm::cos;
-use libm::erfc;
-use libm::log;
-use libm::sin;
-use libm::sqrt;
+use libm::sinf;
+use libm::sqrtf;
 use num::complex::Complex64;
 use num::Complex;
+use offlinepfb_sys::bessel_func;
 use rayon::prelude::*;
 use rustfft::algorithm::Radix4;
 use rustfft::Fft;
@@ -68,16 +66,17 @@ pub struct StreamChannelizer {
 pub fn create_filter(taps: usize, channels: usize) -> Vec<Vec<Complex<f32>>> {
     let mut inter_buffer: Vec<Vec<Complex<f32>>> = Vec::with_capacity(channels);
     let channel_half = channels / 2;
-    for ind in 0..channels * taps {
-        let tap_id = ind / channels;
-        let chann_id = ind % channels;
-        let mut buffer: Vec<Complex<f32>> = vec![Complex::new(0.0, 0.0); 2 * taps];
+    for chann_id in 0..channels {
+    let mut buffer: Vec<Complex<f32>> = vec![Complex::new(0.0, 0.0); 2 * taps];
+        for tap_id in 0..taps {
+        let ind = chann_id*channels + tap_id;
         if chann_id < channel_half {
-            buffer[2 * tap_id] = Complex::new(channel_fn(ind), 0.0);
+            buffer[2 * tap_id] = Complex::new(channel_fn(ind, channels, taps, 10.0), 0.0);
         } else {
-            buffer[2 * tap_id + 1] = Complex::new(channel_fn(ind), 0.0);
+            buffer[2 * tap_id + 1] = Complex::new(channel_fn(ind, channels, taps, 10.0), 0.0);
         }
-        inter_buffer.push(buffer);
+    }
+    inter_buffer.push(buffer);
     }
     inter_buffer
 }
@@ -90,8 +89,13 @@ pub fn create_state(taps: usize, channels: usize) -> Vec<Queue<Complex<f32>>> {
     outp
 }
 
-pub fn channel_fn(ind: usize) -> f32 {
-    todo!();
+pub fn channel_fn(ind: usize, nchannel: usize, nproto: usize, kbeta: f32) -> f32 {
+    let ind_arg = ind as f32;
+    let arg = -((nproto / 2) as f32) + (ind_arg + 1.0) / (nchannel as f32);
+    let darg = (2.0 * ind_arg) / ((nchannel * nproto) as f32) - 1.0;
+    let carg = kbeta * sqrtf(1.0 - darg * darg);
+    (unsafe { bessel_func(carg) }) / (unsafe { bessel_func(kbeta) })
+        * (if arg != 0.0 { sinf(arg) / arg } else { 1.0 })
 }
 
 impl StreamChannelizer {
@@ -144,17 +148,17 @@ pub fn buffer_process(
     sum
 }
 
-// pub fn add(left: usize, right: usize) -> usize {
-//     left + right
-// }
+pub fn add(left: usize, right: usize) -> usize {
+    left + right
+}
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-
-//     #[test]
-//     fn it_works() {
-//         let result = add(2, 2);
-//         assert_eq!(result, 4);
-//     }
-// }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn it_works() {
+        let mut chann_obj = StreamChannelizer::new(128, 1024);
+        let result = add(2, 2);
+        assert_eq!(result, 4);
+    }
+}
