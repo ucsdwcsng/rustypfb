@@ -16,17 +16,17 @@ fn channel_fn(ind: usize, nchannel: usize, nproto: usize, kbeta: f32) -> f32 {
         * (if arg != 0.0 { arg.sin() / arg } else { 1.0 })
 }
 
-fn create_filter<const TWICE_TAPS: usize, const CHANNELS: usize>() -> Vec<[f32; TWICE_TAPS]> {
-    let mut result = vec![[0.0; TWICE_TAPS]; CHANNELS];
+fn create_filter<const TWICE_TAPS: usize>(channels: usize) -> Vec<[f32; TWICE_TAPS]> {
+    let mut result = vec![[0.0; TWICE_TAPS]; channels];
     let taps = TWICE_TAPS / 2;
-    for chann_id in 0..CHANNELS {
+    for chann_id in 0..channels {
         let buffer = &mut result[chann_id];
         for tap_id in 0..taps {
-            let ind = tap_id * CHANNELS + chann_id;
-            if chann_id < CHANNELS / 2 {
-                buffer[2 * tap_id] = channel_fn(ind, CHANNELS, taps, 10.0);
+            let ind = tap_id * channels + chann_id;
+            if chann_id < channels / 2 {
+                buffer[2 * tap_id] = channel_fn(ind, channels, taps, 10.0);
             } else {
-                buffer[2 * tap_id + 1] = channel_fn(ind, CHANNELS, taps, 10.0);
+                buffer[2 * tap_id + 1] = channel_fn(ind, channels, taps, 10.0);
             }
         }
     }
@@ -68,20 +68,22 @@ impl<T: Default + Copy, const CAPACITY: usize> Ring<T, CAPACITY> {
     }
 }
 
-pub struct Channelizer<const TWICE_TAPS: usize, const CHANNELS: usize> {
+pub struct Channelizer<const TWICE_TAPS: usize> {
+    channels: usize,
     fft: Arc<dyn Fft<f32>>,
     coeff: Vec<[f32; TWICE_TAPS]>,
     state: Vec<Ring<Complex<f32>, TWICE_TAPS>>,
-    scratch: [Complex<f32>; CHANNELS],
+    scratch: Vec<Complex<f32>>,
 }
 
-impl<const TWICE_TAPS: usize, const CHANNELS: usize> Channelizer<TWICE_TAPS, CHANNELS> {
-    pub fn new() -> Self {
+impl<const TWICE_TAPS: usize> Channelizer<TWICE_TAPS> {
+    pub fn new(channels: usize) -> Self {
         Self {
-            fft: FftPlanner::new().plan_fft_inverse(CHANNELS),
-            coeff: create_filter::<TWICE_TAPS, CHANNELS>(),
-            state: vec![Ring::new(); CHANNELS / 2],
-            scratch: [Complex::new(0.0, 0.0); CHANNELS],
+            fft: FftPlanner::new().plan_fft_inverse(channels),
+            coeff: create_filter::<TWICE_TAPS>(channels),
+            state: vec![Ring::new(); channels / 2],
+            scratch: vec![Complex::new(0.0, 0.0); channels],
+            channels,
         }
     }
 
@@ -91,7 +93,7 @@ impl<const TWICE_TAPS: usize, const CHANNELS: usize> Channelizer<TWICE_TAPS, CHA
             .zip(samples.iter().rev())
             .for_each(|(ring, sample)| ring.add(*sample));
 
-        output[..CHANNELS]
+        output[..self.channels]
             .iter_mut()
             .zip(self.state.iter().chain(self.state.iter()))
             .zip(self.coeff.iter())
@@ -105,7 +107,7 @@ impl<const TWICE_TAPS: usize, const CHANNELS: usize> Channelizer<TWICE_TAPS, CHA
             });
 
         self.fft
-            .process_with_scratch(&mut output[..CHANNELS], &mut self.scratch);
+            .process_with_scratch(&mut output[..self.channels], &mut self.scratch);
     }
 }
 
@@ -115,13 +117,14 @@ mod tests {
 
     #[test]
     fn process() {
-        let mut channelizer = Channelizer::<256, 1024>::new();
+        const CHANNELS: usize = 1024;
+        let mut channelizer = Channelizer::<256>::new(CHANNELS);
 
         // Example input signal: Let's just use a bunch of 1's for simplicity
-        let input_signal = vec![Complex::new(1.0 as f32, 0.0); 1024 / 2];
+        let input_signal = vec![Complex::new(1.0 as f32, 0.0); CHANNELS / 2];
 
         // Buffer for the channelizer output
-        let mut output_buffer = vec![Complex::new(0.0 as f32, 0.0); 1024];
+        let mut output_buffer = vec![Complex::new(0.0 as f32, 0.0); CHANNELS];
 
         // Process the input signal
         let now = std::time::Instant::now();
