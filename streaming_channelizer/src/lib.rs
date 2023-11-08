@@ -66,6 +66,12 @@ impl<T: Default + Copy, const CAPACITY: usize> Ring<T, CAPACITY> {
         }
         initial.chain(self.buffer[0..0].iter())
     }
+
+    #[inline]
+    fn reset(&mut self) {
+        self.head = 0;
+        self.full = false;
+    }
 }
 
 pub struct Channelizer<const TWICE_TAPS: usize> {
@@ -141,31 +147,52 @@ impl<const TWICE_TAPS: usize> Channelizer<TWICE_TAPS> {
 
         self.channels
     }
+
+    /// Resets the state of this channelizer
+    pub fn reset(&mut self) {
+        for ring in self.state.iter_mut() {
+            ring.reset();
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    const CHANNELS: usize = 1024;
+    const TWICE_TAPS: usize = 256;
+    const INPUT_SIGNAL: [Complex<f32>; CHANNELS / 2] = [Complex::new(1.0, 0.0); CHANNELS / 2];
+
     #[test]
     fn process() {
-        const CHANNELS: usize = 1024;
-        let mut channelizer = Channelizer::<256>::new(CHANNELS);
+        let mut channelizer = Channelizer::<TWICE_TAPS>::new(CHANNELS);
+        let mut output = vec![Complex::new(0.0, 0.0); CHANNELS];
 
-        // Example input signal: Let's just use a bunch of 1's for simplicity
-        let input_signal = vec![Complex::new(1.0 as f32, 0.0); CHANNELS / 2];
-
-        // Buffer for the channelizer output
-        let mut output_buffer = vec![Complex::new(0.0 as f32, 0.0); CHANNELS];
-
-        // Process the input signal
         let now = std::time::Instant::now();
         for _ in 0..1000 {
-            channelizer.add(&input_signal);
-            channelizer.process(&mut output_buffer);
+            channelizer.add(&INPUT_SIGNAL);
+            channelizer.process(&mut output);
         }
-        println!("{:?}", now.elapsed());
 
-        println!("{:?}", &output_buffer[..2]);
+        println!("time to process 1000 slices: {:?}", now.elapsed());
+        println!("sample output: {:?}", &output[..2]);
+    }
+
+    #[test]
+    fn reset() {
+        let mut channelizer = Channelizer::<TWICE_TAPS>::new(CHANNELS);
+        let mut output = vec![Complex::new(0.0, 0.0); CHANNELS];
+
+        channelizer.add(&INPUT_SIGNAL);
+        channelizer.process(&mut output);
+
+        let copy = output.clone();
+
+        channelizer.reset();
+        channelizer.add(&INPUT_SIGNAL);
+        channelizer.process(&mut output);
+
+        assert_eq!(copy, output);
     }
 }
