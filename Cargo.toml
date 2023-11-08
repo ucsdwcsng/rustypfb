@@ -1,0 +1,7 @@
+[workspace]
+resolver = "2"
+members = ["streaming_channelizer", "offlinepfb-sys", "channelizer"]
+default-members = ["streaming_channelizer", "offlinepfb-sys", "channelizer"]
+
+[workspace.package]
+edition = "2021"
