@@ -2,7 +2,7 @@ use libm::sinf;
 use libm::sqrtf;
 use num::complex::Complex64;
 use num::Complex;
-use offlinepfb_sys::bessel_func;
+use bessel_fun_sys::bessel_func;
 use rayon::prelude::*;
 use rustfft::algorithm::Radix4;
 use rustfft::Fft;
@@ -173,8 +173,8 @@ mod tests {
         channelizer.process(&input_signal, &mut output_buffer);
 
         // Print the output buffer
-        // for (i, sample) in output_buffer.iter().enumerate() {
-        //     println!("Channel {}: {:?}", i, sample);
-        // }
+        for (i, sample) in output_buffer.iter().enumerate() {
+            println!("Channel {}: {:?}", i, sample);
+        }
     }
 }
