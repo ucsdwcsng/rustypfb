@@ -93,14 +93,15 @@ impl<const TWICE_TAPS: usize, const CHANNELS: usize> Channelizer<TWICE_TAPS, CHA
 
         output[..CHANNELS]
             .iter_mut()
-            .enumerate()
-            .for_each(|(idx, item)| {
-                *item = self.state[idx % CHANNELS / 2]
+            .zip(self.state.iter().chain(self.state.iter()))
+            .zip(self.coeff.iter())
+            .for_each(|((out, ring), coeff)| {
+                *out = ring
                     .inner_iter()
-                    .zip(self.coeff[idx].iter())
+                    .zip(coeff.iter())
                     .fold(Complex::new(0.0, 0.0), |accum, (state, coeff)| {
-                        accum + (state * coeff)
-                    });
+                        accum + state * coeff
+                    })
             });
 
         self.fft
