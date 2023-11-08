@@ -16,18 +16,17 @@ fn channel_fn(ind: usize, nchannel: usize, nproto: usize, kbeta: f32) -> f32 {
         * (if arg != 0.0 { arg.sin() / arg } else { 1.0 })
 }
 
-fn create_filter<const TWICE_TAPS: usize, const CHANNELS: usize>() -> Vec<[Complex<f32>; TWICE_TAPS]>
-{
-    let mut result = vec![[Complex::new(0.0, 0.0); TWICE_TAPS]; CHANNELS];
+fn create_filter<const TWICE_TAPS: usize, const CHANNELS: usize>() -> Vec<[f32; TWICE_TAPS]> {
+    let mut result = vec![[0.0; TWICE_TAPS]; CHANNELS];
     let taps = TWICE_TAPS / 2;
     for chann_id in 0..CHANNELS {
         let buffer = &mut result[chann_id];
         for tap_id in 0..taps {
             let ind = tap_id * CHANNELS + chann_id;
             if chann_id < CHANNELS / 2 {
-                buffer[2 * tap_id] = Complex::new(channel_fn(ind, CHANNELS, taps, 10.0), 0.0);
+                buffer[2 * tap_id] = channel_fn(ind, CHANNELS, taps, 10.0);
             } else {
-                buffer[2 * tap_id + 1] = Complex::new(channel_fn(ind, CHANNELS, taps, 10.0), 0.0);
+                buffer[2 * tap_id + 1] = channel_fn(ind, CHANNELS, taps, 10.0);
             }
         }
     }
@@ -50,6 +49,7 @@ impl<T: Default + Copy, const CAPACITY: usize> Ring<T, CAPACITY> {
         }
     }
 
+    #[inline]
     fn add(&mut self, element: T) {
         self.buffer[self.head] = element;
         self.head += 1;
@@ -70,7 +70,7 @@ impl<T: Default + Copy, const CAPACITY: usize> Ring<T, CAPACITY> {
 
 pub struct Channelizer<const TWICE_TAPS: usize, const CHANNELS: usize> {
     fft: Arc<dyn Fft<f32>>,
-    coeff: Vec<[Complex<f32>; TWICE_TAPS]>,
+    coeff: Vec<[f32; TWICE_TAPS]>,
     state: Vec<Ring<Complex<f32>, TWICE_TAPS>>,
     scratch: [Complex<f32>; CHANNELS],
 }
