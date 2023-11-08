@@ -1,9 +1,8 @@
+use bessel_fun_sys::bessel_func;
 use libm::sinf;
 use libm::sqrtf;
 use num::complex::Complex64;
 use num::Complex;
-use bessel_fun_sys::bessel_func;
-use rayon::prelude::*;
 use rustfft::algorithm::Radix4;
 use rustfft::Fft;
 use std::collections::VecDeque;
@@ -67,16 +66,16 @@ pub fn create_filter(taps: usize, channels: usize) -> Vec<Vec<Complex<f32>>> {
     let mut inter_buffer: Vec<Vec<Complex<f32>>> = Vec::with_capacity(channels);
     let channel_half = channels / 2;
     for chann_id in 0..channels {
-    let mut buffer: Vec<Complex<f32>> = vec![Complex::new(0.0, 0.0); 2 * taps];
+        let mut buffer: Vec<Complex<f32>> = vec![Complex::new(0.0, 0.0); 2 * taps];
         for tap_id in 0..taps {
-        let ind = tap_id*channels + chann_id;
-        if chann_id < channel_half {
-            buffer[2 * tap_id] = Complex::new(channel_fn(ind, channels, taps, 10.0), 0.0);
-        } else {
-            buffer[2 * tap_id + 1] = Complex::new(channel_fn(ind, channels, taps, 10.0), 0.0);
+            let ind = tap_id * channels + chann_id;
+            if chann_id < channel_half {
+                buffer[2 * tap_id] = Complex::new(channel_fn(ind, channels, taps, 10.0), 0.0);
+            } else {
+                buffer[2 * tap_id + 1] = Complex::new(channel_fn(ind, channels, taps, 10.0), 0.0);
+            }
         }
-    }
-    inter_buffer.push(buffer);
+        inter_buffer.push(buffer);
     }
     inter_buffer
 }
@@ -112,12 +111,12 @@ impl StreamChannelizer {
     }
     pub fn process(&mut self, sample_arr: &[Complex<f32>], output_buffer: &mut [Complex<f32>]) {
         self.internal_buffers
-            .par_iter_mut()
+            .iter_mut()
             .enumerate()
             .for_each(|(ind, item)| item.add(sample_arr[self.nchannels / 2 - ind - 1]));
 
         (self.pre_out_buffer)
-            .par_iter_mut()
+            .iter_mut()
             .enumerate()
             .for_each(|(ind, item)| {
                 (*item) = buffer_process(&self.internal_buffers, &self.coeff, ind)
@@ -143,7 +142,7 @@ pub fn buffer_process(
     } else {
         id - nchannels / 2
     };
-    for (ind, item) in lhs[reduced_ind].buffer.iter().enumerate(){
+    for (ind, item) in lhs[reduced_ind].buffer.iter().enumerate() {
         sum += (*item) * rhs[id][ind];
     }
     sum
@@ -158,8 +157,8 @@ mod tests {
     use super::*;
     #[test]
     fn it_works() {
-        let channels:usize = 1024;
-        let taps : usize= 128;
+        let channels: usize = 1024;
+        let taps: usize = 128;
 
         let mut channelizer = StreamChannelizer::new(128, 1024);
 
