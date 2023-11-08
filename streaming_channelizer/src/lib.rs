@@ -87,12 +87,43 @@ impl<const TWICE_TAPS: usize> Channelizer<TWICE_TAPS> {
         }
     }
 
-    pub fn process(&mut self, samples: &[Complex<f32>], output: &mut [Complex<f32>]) {
+    pub fn channels(&self) -> usize {
+        self.channels
+    }
+
+    /// Add a single slice of channels to the state of this channelizer.
+    ///
+    /// `add` will only take the first [`channels`] divded by two number of samples from the given
+    /// slice. Any additional samples will be ignored. `add` returns the total number of samples
+    /// taken from the given slice.
+    ///
+    /// # Panics
+    /// If the length of the given sample slice isn't greater than the number of channels divided by
+    /// two, this call will panic. This call is only expected to add a single slice at a time.
+    ///
+    /// [`channels`]: Self::channels()
+    #[inline]
+    pub fn add(&mut self, samples: &[Complex<f32>]) -> usize {
+        assert!(samples.len() >= self.channels / 2);
         self.state
             .iter_mut()
-            .zip(samples.iter().rev())
+            .zip(samples.iter().take(self.channels / 2).rev())
             .for_each(|(ring, sample)| ring.add(*sample));
 
+        self.channels / 2
+    }
+
+    /// Produce a channelizer slice from this channelizer's current state
+    ///
+    /// The given output slice is expected to be at least of size equal to [`channels`]. Any
+    /// additional space in the output slice is unused. `process` will return the number of
+    /// locations modified by the call.
+    ///
+    /// # Panics
+    /// `process` will panic if the length of the output is less than [`channels`].
+    ///
+    /// [`channels`]: Self::channels()
+    pub fn process(&mut self, output: &mut [Complex<f32>]) -> usize {
         output[..self.channels]
             .iter_mut()
             .zip(self.state.iter().chain(self.state.iter()))
@@ -105,9 +136,10 @@ impl<const TWICE_TAPS: usize> Channelizer<TWICE_TAPS> {
                         accum + state * coeff
                     })
             });
-
         self.fft
             .process_with_scratch(&mut output[..self.channels], &mut self.scratch);
+
+        self.channels
     }
 }
 
@@ -128,8 +160,9 @@ mod tests {
 
         // Process the input signal
         let now = std::time::Instant::now();
-        for _ in 1..1000 {
-            channelizer.process(&input_signal, &mut output_buffer);
+        for _ in 0..1000 {
+            channelizer.add(&input_signal);
+            channelizer.process(&mut output_buffer);
         }
         println!("{:?}", now.elapsed());
 
