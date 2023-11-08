@@ -114,7 +114,7 @@ impl StreamChannelizer {
         self.internal_buffers
             .par_iter_mut()
             .enumerate()
-            .for_each(|(ind, item)| item.add(sample_arr[self.nchannels / 2 - ind]));
+            .for_each(|(ind, item)| item.add(sample_arr[self.nchannels / 2 - ind - 1]));
 
         (self.pre_out_buffer)
             .par_iter_mut()
@@ -137,13 +137,14 @@ pub fn buffer_process(
 ) -> Complex<f32> {
     let mut sum = Complex { re: 0.0, im: 0.0 };
     let nchannels = rhs.len();
+    println!("{}", nchannels);
     let reduced_ind = if id < nchannels / 2 {
         id
     } else {
         id - nchannels / 2
     };
-    for (ind, item) in rhs[id].iter().enumerate() {
-        sum += (*item) * (lhs[reduced_ind].buffer)[ind];
+    for (ind, item) in lhs[reduced_ind].buffer.iter().enumerate(){
+        sum += (*item) * rhs[id][ind];
     }
     sum
 }
@@ -157,8 +158,23 @@ mod tests {
     use super::*;
     #[test]
     fn it_works() {
-        let mut chann_obj = StreamChannelizer::new(128, 1024);
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+        let channels:usize = 1024;
+        let taps : usize= 128;
+
+        let mut channelizer = StreamChannelizer::new(128, 1024);
+
+        // Example input signal: Let's just use a bunch of 1's for simplicity
+        let input_signal = vec![Complex::new(1.0 as f32, 0.0); channels / 2];
+
+        // Buffer for the channelizer output
+        let mut output_buffer = vec![Complex::new(0.0 as f32, 0.0); channels];
+
+        // Process the input signal
+        channelizer.process(&input_signal, &mut output_buffer);
+
+        // Print the output buffer
+        // for (i, sample) in output_buffer.iter().enumerate() {
+        //     println!("Channel {}: {:?}", i, sample);
+        // }
     }
 }
