@@ -94,13 +94,11 @@ impl<const TWICE_TAPS: usize, const CHANNELS: usize> Channelizer<TWICE_TAPS, CHA
             .for_each(|(idx, item)| item.add(samples[CHANNELS / 2 - idx - 1]));
 
         self.buff.iter_mut().enumerate().for_each(|(idx, item)| {
-            *item = Complex::new(0.0, 0.0);
-            let smol_idx = idx % CHANNELS / 2;
-            self.state[smol_idx]
+            *item = self.state[idx % CHANNELS / 2]
                 .inner_iter()
-                .enumerate()
-                .for_each(|(inner_idx, inner_item)| {
-                    *item += (*inner_item) * self.coeff[idx][inner_idx]
+                .zip(self.coeff[idx].iter())
+                .fold(Complex::new(0.0, 0.0), |accum, (state, coeff)| {
+                    accum + (state * coeff)
                 });
         });
 
@@ -125,5 +123,7 @@ mod tests {
 
         // Process the input signal
         channelizer.process(&input_signal, &mut output_buffer);
+
+        println!("{:?}", &output_buffer[..2]);
     }
 }
