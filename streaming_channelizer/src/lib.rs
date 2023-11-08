@@ -72,7 +72,6 @@ pub struct Channelizer<const TWICE_TAPS: usize, const CHANNELS: usize> {
     fft: Arc<dyn Fft<f32>>,
     coeff: Vec<[Complex<f32>; TWICE_TAPS]>,
     state: Vec<Ring<Complex<f32>, TWICE_TAPS>>,
-    buff: [Complex<f32>; CHANNELS],
     scratch: [Complex<f32>; CHANNELS],
 }
 
@@ -82,7 +81,6 @@ impl<const TWICE_TAPS: usize, const CHANNELS: usize> Channelizer<TWICE_TAPS, CHA
             fft: FftPlanner::new().plan_fft_inverse(CHANNELS),
             coeff: create_filter::<TWICE_TAPS, CHANNELS>(),
             state: vec![Ring::new(); CHANNELS / 2],
-            buff: [Complex::new(0.0, 0.0); CHANNELS],
             scratch: [Complex::new(0.0, 0.0); CHANNELS],
         }
     }
@@ -90,20 +88,23 @@ impl<const TWICE_TAPS: usize, const CHANNELS: usize> Channelizer<TWICE_TAPS, CHA
     pub fn process(&mut self, samples: &[Complex<f32>], output: &mut [Complex<f32>]) {
         self.state
             .iter_mut()
-            .enumerate()
-            .for_each(|(idx, item)| item.add(samples[CHANNELS / 2 - idx - 1]));
+            .zip(samples.iter().rev())
+            .for_each(|(ring, sample)| ring.add(*sample));
 
-        self.buff.iter_mut().enumerate().for_each(|(idx, item)| {
-            *item = self.state[idx % CHANNELS / 2]
-                .inner_iter()
-                .zip(self.coeff[idx].iter())
-                .fold(Complex::new(0.0, 0.0), |accum, (state, coeff)| {
-                    accum + (state * coeff)
-                });
-        });
+        output[..CHANNELS]
+            .iter_mut()
+            .enumerate()
+            .for_each(|(idx, item)| {
+                *item = self.state[idx % CHANNELS / 2]
+                    .inner_iter()
+                    .zip(self.coeff[idx].iter())
+                    .fold(Complex::new(0.0, 0.0), |accum, (state, coeff)| {
+                        accum + (state * coeff)
+                    });
+            });
 
         self.fft
-            .process_outofplace_with_scratch(&mut self.buff, output, &mut self.scratch);
+            .process_with_scratch(&mut output[..CHANNELS], &mut self.scratch);
     }
 }
 
@@ -122,7 +123,11 @@ mod tests {
         let mut output_buffer = vec![Complex::new(0.0 as f32, 0.0); 1024];
 
         // Process the input signal
-        channelizer.process(&input_signal, &mut output_buffer);
+        let now = std::time::Instant::now();
+        for _ in 1..1000 {
+            channelizer.process(&input_signal, &mut output_buffer);
+        }
+        println!("{:?}", now.elapsed());
 
         println!("{:?}", &output_buffer[..2]);
     }
