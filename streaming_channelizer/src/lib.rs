@@ -137,7 +137,7 @@ pub fn buffer_process(
 ) -> Complex<f32> {
     let mut sum = Complex { re: 0.0, im: 0.0 };
     let nchannels = rhs.len();
-    println!("{}", nchannels);
+    // println!("{}", nchannels);
     let reduced_ind = if id < nchannels / 2 {
         id
     } else {
