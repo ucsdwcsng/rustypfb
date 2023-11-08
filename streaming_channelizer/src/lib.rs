@@ -69,7 +69,7 @@ pub fn create_filter(taps: usize, channels: usize) -> Vec<Vec<Complex<f32>>> {
     for chann_id in 0..channels {
     let mut buffer: Vec<Complex<f32>> = vec![Complex::new(0.0, 0.0); 2 * taps];
         for tap_id in 0..taps {
-        let ind = chann_id*channels + tap_id;
+        let ind = tap_id*channels + chann_id;
         if chann_id < channel_half {
             buffer[2 * tap_id] = Complex::new(channel_fn(ind, channels, taps, 10.0), 0.0);
         } else {
