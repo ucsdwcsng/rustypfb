@@ -1,6 +1,6 @@
 use bessel_fun_sys::bessel_func;
 
-use num::Complex;
+use num::{Complex, Zero};
 use rustfft::{Fft, FftPlanner};
 
 use std::iter::Chain;
@@ -17,7 +17,7 @@ fn channel_fn(ind: usize, nchannel: usize, nproto: usize, kbeta: f32) -> f32 {
 }
 
 fn create_filter<const TWICE_TAPS: usize>(channels: usize) -> Vec<[f32; TWICE_TAPS]> {
-    let mut result = vec![[0.0; TWICE_TAPS]; channels];
+    let mut result = vec![[f32::zero(); TWICE_TAPS]; channels];
     let taps = TWICE_TAPS / 2;
     for chann_id in 0..channels {
         let buffer = &mut result[chann_id];
@@ -74,6 +74,7 @@ impl<T: Default + Copy, const CAPACITY: usize> Ring<T, CAPACITY> {
     }
 }
 
+#[derive(Clone)]
 pub struct Channelizer<const TWICE_TAPS: usize> {
     channels: usize,
     fft: Arc<dyn Fft<f32>>,
@@ -88,7 +89,7 @@ impl<const TWICE_TAPS: usize> Channelizer<TWICE_TAPS> {
             fft: FftPlanner::new().plan_fft_inverse(channels),
             coeff: create_filter::<TWICE_TAPS>(channels),
             state: vec![Ring::new(); channels / 2],
-            scratch: vec![Complex::new(0.0, 0.0); channels],
+            scratch: vec![Complex::zero(); channels],
             channels,
         }
     }
@@ -138,7 +139,7 @@ impl<const TWICE_TAPS: usize> Channelizer<TWICE_TAPS> {
                 *out = ring
                     .inner_iter()
                     .zip(coeff.iter())
-                    .fold(Complex::new(0.0, 0.0), |accum, (state, coeff)| {
+                    .fold(Complex::zero(), |accum, (state, coeff)| {
                         accum + state * coeff
                     })
             });
@@ -159,15 +160,16 @@ impl<const TWICE_TAPS: usize> Channelizer<TWICE_TAPS> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rayon::prelude::*;
 
-    const CHANNELS: usize = 1024;
-    const TWICE_TAPS: usize = 256;
+    const CHANNELS: usize = 4096;
+    const TWICE_TAPS: usize = 24;
     const INPUT_SIGNAL: [Complex<f32>; CHANNELS / 2] = [Complex::new(1.0, 0.0); CHANNELS / 2];
 
     #[test]
     fn process() {
         let mut channelizer = Channelizer::<TWICE_TAPS>::new(CHANNELS);
-        let mut output = vec![Complex::new(0.0, 0.0); CHANNELS];
+        let mut output = vec![Complex::zero(); CHANNELS];
 
         let now = std::time::Instant::now();
         for _ in 0..1000 {
@@ -180,9 +182,35 @@ mod tests {
     }
 
     #[test]
+    fn par_process() {
+        const INNER_LOOPS: usize = 10_000;
+        const CHUNKS: usize = 50;
+
+        let mut output = vec![[Complex::zero(); CHANNELS]; CHUNKS];
+        let mut channelizers = vec![Channelizer::<TWICE_TAPS>::new(CHANNELS); output.len()];
+
+        let now = std::time::Instant::now();
+        output
+            .par_iter_mut()
+            .zip(channelizers.par_iter_mut())
+            .for_each(|(output, channelizer)| {
+                for _ in 0..INNER_LOOPS {
+                    channelizer.add(&INPUT_SIGNAL);
+                    channelizer.process(output);
+                }
+            });
+        println!(
+            "time to process {:?} slices: {:?}",
+            INNER_LOOPS * CHUNKS,
+            now.elapsed()
+        );
+        println!("using {:?} taps, {:?} channels", TWICE_TAPS / 2, CHANNELS);
+    }
+
+    #[test]
     fn reset() {
         let mut channelizer = Channelizer::<TWICE_TAPS>::new(CHANNELS);
-        let mut output = vec![Complex::new(0.0, 0.0); CHANNELS];
+        let mut output = vec![Complex::zero(); CHANNELS];
 
         channelizer.add(&INPUT_SIGNAL);
         channelizer.process(&mut output);

@@ -10,5 +10,8 @@ num = "0.4.1"
 rustfft = "6.1.0"
 bessel_fun_sys = { path = "./bessel_fun_sys" }
 
+[dev-dependencies]
+rayon = "1.8.0"
+
 [build-dependencies]
 cc = "1.0"
