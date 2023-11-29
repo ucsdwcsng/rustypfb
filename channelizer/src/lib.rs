@@ -121,12 +121,9 @@ mod tests {
         let mut samples_bytes = Vec::new();
         let _ = file.read_to_end(&mut samples_bytes);
         let samples: &[f32] = bytemuck::cast_slice(&samples_bytes);
-        // Commenting this line out causes segmentation fault
-        let samples_vec: Vec<f32> = samples.to_vec();
-
-        // Copy data to input buffer of appropriate size
-        const NSAMPLES: i32 = 100000000;
-        let mut input_vec = vec![0.0 as f32; (2 * NSAMPLES) as usize];
+        
+        // Copy onto input
+        let mut input_vec = vec![0.0 as f32; (nch*nslice) as usize];
         input_vec[..samples.len()].clone_from_slice(samples);
         // Setup the output buffer
         let mut output_buffer: DevicePtr = DevicePtr::new(nch * nslice);
