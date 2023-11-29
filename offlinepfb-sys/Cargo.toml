@@ -10,5 +10,6 @@ links = "offlinepfb"
 cc = "1.0.83"
 
 [dependencies]
+cc = "1.0.83"
 libm = "0.2.8"
 num = "0.4.1"

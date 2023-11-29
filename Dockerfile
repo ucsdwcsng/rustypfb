@@ -31,16 +31,17 @@ RUN pip install numpy scipy matplotlib
 
 # This step builds and installs Clang+LLVM toolchain from source that matches the version the 
 # Rust compiler uses. Openmp is also enabled.
-# LLVM gets installed in opt/llvm
-# RUN mkdir /opt/llvm 
-# RUN git clone https://github.com/llvm/llvm-project.git
-# WORKDIR /llvm-project 
-# RUN git checkout llvmorg-16.0.5 
-# RUN cmake -S llvm -B build -G Ninja \
-#     -DLLVM_ENABLE_PROJECTS="clang;lld" -DLLVM_ENABLE_RUNTIMES="openmp" -DCMAKE_BUILD_TYPE=Release \
-#     -DCMAKE_INSTALL_PREFIX=/opt/llvm
-# RUN ninja -C build install
+#LLVM gets installed in opt/llvm
+RUN mkdir /opt/llvm 
+RUN git clone https://github.com/llvm/llvm-project.git
+WORKDIR /llvm-project 
+RUN git checkout llvmorg-16.0.5 
+RUN cmake -S llvm -B build -G Ninja \
+    -DLLVM_ENABLE_PROJECTS="clang;lld" -DLLVM_ENABLE_RUNTIMES="openmp" -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/opt/llvm
+RUN ninja -C build install
 
+WORKDIR /
 RUN wget https://www.agner.org/optimize/asmlib.zip
 RUN mkdir /opt/asmlib
 RUN unzip asmlib.zip -d /opt/asmlib

@@ -5,8 +5,11 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
+bytemuck = "1.14.0"
+libm = "0.2.8"
 num = "0.4.1"
+num-complex = { version = "0.4.4", features=["bytemuck"]} 
 offlinepfb-sys = { path = "../offlinepfb-sys"}
 
-[bulid-dependencies]
+[build-dependencies]
 cc = "1.0.83"

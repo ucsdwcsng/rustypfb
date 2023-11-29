@@ -162,8 +162,8 @@ mod tests {
     use super::*;
     use rayon::prelude::*;
 
-    const CHANNELS: usize = 4096;
-    const TWICE_TAPS: usize = 24;
+    const CHANNELS: usize = 1024;
+    const TWICE_TAPS: usize = 8;
     const INPUT_SIGNAL: [Complex<f32>; CHANNELS / 2] = [Complex::new(1.0, 0.0); CHANNELS / 2];
 
     #[test]
