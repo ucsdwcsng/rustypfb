@@ -13,6 +13,4 @@ struct box {
     box();
 };
 
-void __global__ test(box*);
-
 void __global__ revert(cufftComplex*, box*, cufftComplex*);
