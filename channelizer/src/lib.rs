@@ -96,7 +96,7 @@ mod tests {
     use std::time::Instant;
     use std::mem::{self, align_of_val};
     #[test]
-    fn it_works() {
+    fn correctness() {
         // Setup the Channelizer
         let nch = 1024;
         let ntaps = 128;
@@ -125,6 +125,7 @@ mod tests {
         // Copy onto input
         let mut input_vec = vec![0.0 as f32; (nch*nslice) as usize];
         input_vec[..samples.len()].clone_from_slice(samples);
+
         // Setup the output buffer
         let mut output_buffer: DevicePtr = DevicePtr::new(nch * nslice);
 
