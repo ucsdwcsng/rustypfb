@@ -13,4 +13,19 @@ struct box {
     box();
 };
 
-void __global__ revert(cufftComplex*, box*, cufftComplex*);
+class synthesizer
+{
+    public:
+    int nchannel;
+    int ntaps;
+    int nslice;
+
+    cufftHandle *plans;
+
+    synthesizer(int, int, int);
+    void revert(cufftComplex*, box*, cufftHandle*, cufftComplex*, cufftComplex*, int);
+    ~synthesizer();
+};
+
+void __global__ synthesize(cufftComplex*, box*, cufftHandle*, cufftComplex*, cufftComplex*, int);
+
