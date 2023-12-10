@@ -20,7 +20,8 @@ class synthesizer
     int ntaps;
     int nslice;
 
-    cufftHandle *plans;
+    cufftHandle *small_plans;
+    cufftHandle *large_plans;
 
     synthesizer(int, int, int);
     void revert(cufftComplex*, box*, cufftHandle*, cufftComplex*, cufftComplex*, int);
