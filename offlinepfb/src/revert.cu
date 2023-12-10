@@ -56,6 +56,7 @@ float __device__ filter_value(int index)
 
 void synthesizer::revert(cufftComplex *input, box *Box, cufftHandle *plan, cufftComplex *scratch, cufftComplex *output, int taps)
 {
+    /// ToDO
 }
 
 void __global__ sythesize(cufftComplex *input, box *Box, cufftHandle *plan, cufftComplex *scratch, cufftComplex *output, int taps)
