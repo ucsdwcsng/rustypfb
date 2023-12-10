@@ -49,31 +49,43 @@ synthesizer::~synthesizer()
     delete [] large_plans;
 }
 
-float __device__ filter_value(int index, int nchannel, int nslice, int taps)
+float __device__ filter_value(int index, int nchannel, int taps)
 {
-    return 0.0;
+    return cyl_bessel_i0f(static_cast<float>(index));
 }
 
 void synthesizer::revert(cufftComplex *input, box *Box, cufftHandle *plan, cufftComplex *scratch, cufftComplex *output, int taps, int nboxes)
 {
     for (int boxind=0; boxind < nboxes; boxind++)
     {
+        auto curr_box = Box[boxind];
 
+        auto start_channel = curr_box.start_chann;
+        auto end_channel   = curr_box.stop_chann;
+        auto start_time    = curr_box.start_time;
+        auto end_time      = curr_box.stop_time;
+
+        int scratch_start_chann = start_channel;
+        if (start_channel == 0)
+        {
+            scratch_start_chann = 1;
+        }
+        cudaMemcpy2D(scratch + nslice*scratch_start_chann, nslice, input+start_channel*nslice, nslice, (end_time - start_time)*sizeof(cufftComplex), end_channel - start_channel, cudaMemcpyDeviceToDevice);
     }
 }
 
-void __global__ synthesize(cufftComplex *input, box *Box, cufftHandle *plan, cufftComplex *scratch, cufftComplex *output, int taps)
+void __global__ synthesize(cufftComplex *input, box *Box, cufftComplex *output, int taps)
 {
-    int inp_chann_id = blockDim.z * blockIdx.z + threadIdx.z;
-    int inp_slice_id = blockDim.x * blockIdx.x + threadIdx.x;
-    int outp_slice_id = blockDim.y * blockIdx.y + threadIdx.y;
+    int inp_chann_id    = blockDim.z * blockIdx.z + threadIdx.z;
+    int inp_slice_id    = blockDim.x * blockIdx.x + threadIdx.x;
+    int outp_slice_id   = blockDim.y * blockIdx.y + threadIdx.y;
 
     int nchannel = Box->stop_chann - Box->start_chann;
     int nslice   = Box->stop_time  - Box->start_time;
 
     if (inp_slice_id <= outp_slice_id)
     {
-        atomicAdd(&output[outp_slice_id].x, filter_value(outp_slice_id - inp_slice_id, nchannel, nslice, taps) * input[inp_slice_id].x);
-        atomicAdd(&output[outp_slice_id].y, filter_value(outp_slice_id - inp_slice_id, nchannel, nslice, taps) * input[inp_slice_id].y);
+        atomicAdd(&output[outp_slice_id].x, filter_value(outp_slice_id - inp_slice_id, nchannel, taps) * input[inp_slice_id].x);
+        atomicAdd(&output[outp_slice_id].y, filter_value(outp_slice_id - inp_slice_id, nchannel, taps) * input[inp_slice_id].y);
     }
 }
