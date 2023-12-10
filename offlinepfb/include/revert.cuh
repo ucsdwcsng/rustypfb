@@ -24,7 +24,7 @@ class synthesizer
     cufftHandle *large_plans;
 
     synthesizer(int, int, int);
-    void revert(cufftComplex*, box*, cufftHandle*, cufftComplex*, cufftComplex*, int);
+    void revert(cufftComplex*, box*, cufftHandle*, cufftComplex*, cufftComplex*, int, int);
     ~synthesizer();
 };
 

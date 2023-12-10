@@ -49,25 +49,31 @@ synthesizer::~synthesizer()
     delete [] large_plans;
 }
 
-float __device__ filter_value(int index)
+float __device__ filter_value(int index, int nchannel, int nslice, int taps)
 {
     return 0.0;
 }
 
-void synthesizer::revert(cufftComplex *input, box *Box, cufftHandle *plan, cufftComplex *scratch, cufftComplex *output, int taps)
+void synthesizer::revert(cufftComplex *input, box *Box, cufftHandle *plan, cufftComplex *scratch, cufftComplex *output, int taps, int nboxes)
 {
-    /// ToDO
+    for (int boxind=0; boxind < nboxes; boxind++)
+    {
+
+    }
 }
 
-void __global__ sythesize(cufftComplex *input, box *Box, cufftHandle *plan, cufftComplex *scratch, cufftComplex *output, int taps)
+void __global__ synthesize(cufftComplex *input, box *Box, cufftHandle *plan, cufftComplex *scratch, cufftComplex *output, int taps)
 {
     int inp_chann_id = blockDim.z * blockIdx.z + threadIdx.z;
     int inp_slice_id = blockDim.x * blockIdx.x + threadIdx.x;
     int outp_slice_id = blockDim.y * blockIdx.y + threadIdx.y;
 
+    int nchannel = Box->stop_chann - Box->start_chann;
+    int nslice   = Box->stop_time  - Box->start_time;
+
     if (inp_slice_id <= outp_slice_id)
     {
-        atomicAdd(&output[outp_slice_id].x, filter_value(outp_slice_id - inp_slice_id) * input[inp_slice_id].x);
-        atomicAdd(&output[outp_slice_id].y, filter_value(outp_slice_id - inp_slice_id) * input[inp_slice_id].y);
+        atomicAdd(&output[outp_slice_id].x, filter_value(outp_slice_id - inp_slice_id, nchannel, nslice, taps) * input[inp_slice_id].x);
+        atomicAdd(&output[outp_slice_id].y, filter_value(outp_slice_id - inp_slice_id, nchannel, nslice, taps) * input[inp_slice_id].y);
     }
 }
