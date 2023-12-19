@@ -21,3 +21,5 @@ In case the online version is needed,
 2. In the Cargo.toml of your project, add the relative path to the `streaming_channelizer` folder under the dependencies key.
 3. You can now use the exposed functions in this module from your project.
 
+![Image Alt Text](/docs/filter_responses.png)
+
