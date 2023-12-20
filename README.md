@@ -8,5 +8,9 @@ For distortion free reconstruction, we need minimal overlap between the passband
 
 ![Image Alt Text](/docs/shifted_filter_responses.png)
 
+This concludes the theoretical justification for the choices of prototype synthesis and analysis filters.
+
+Usage instructions coming soon.
+
 
 
