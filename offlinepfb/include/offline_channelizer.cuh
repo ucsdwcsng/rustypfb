@@ -24,17 +24,17 @@ void __global__ alias(cufftComplex*, int);
 void __global__ reshape(cufftComplex*, cufftComplex*, int, int);
 void __global__ fft_shift(cufftComplex*, int, bool);
 
-/*
- * Specifies the time frequency Box that needs to be reverted.
- */
-class Box
-{
-    public:
-        int center_freq;
-        int center_sample;
-        int nchannels;
-        int nslices;
-};
+// /*
+//  * Specifies the time frequency Box that needs to be reverted.
+//  */
+// class Box
+// {
+//     public:
+//         int center_freq;
+//         int center_sample;
+//         int nchannels;
+//         int nslices;
+// };
 
 class channelizer
 {

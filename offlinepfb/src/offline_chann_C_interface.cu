@@ -58,4 +58,26 @@ extern "C"
     {
         cudaMemcpy(out, in, sizeof(cufftComplex)*size, cudaMemcpyDeviceToHost);
     }
+
+    synth* synth_create(int chann, int tap, int slice)
+    {   
+        return reinterpret_cast<synth*>(new synthesizer(chann, tap, slice));
+    }
+
+    void synth_destroy(synth* inp)
+    {
+        delete reinterpret_cast<synthesizer*>(inp);
+    }
+
+    // c_box* box_create(int a, int b, int c, int d, int e)
+    // {
+    //     return reinterpret_cast<c_box*>(new box(a, b, c, d, e));
+    // }
+
+    void synth_revert(synth* inp, cufftComplex* input, box* Box, cufftComplex* scratch, cufftComplex* output, int taps, int nboxes)
+    {
+        reinterpret_cast<synthesizer*>(inp)->revert(input, Box, scratch, output, taps, nboxes);
+    }
 }
+
+    

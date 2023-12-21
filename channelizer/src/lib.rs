@@ -92,15 +92,18 @@ impl Drop for ChunkChannelizer {
 
 #[cfg(test)]
 mod tests {
+    use num::Zero;
+
     use super::*;
+    use std::io::Write;
     use std::time::Instant;
     use std::mem::{self, align_of_val};
     #[test]
-    fn correctness() {
+    fn correctness_visual_test() {
         // Setup the Channelizer
         let nch = 1024;
         let ntaps = 128;
-        let nslice = 2 * 1024 * 128;
+        let nslice = 262144;
         let float_taps = (-ntaps / 2) as f32;
         let chann_float = nch as f32;
         let chann_proto = ntaps as f32;
@@ -121,7 +124,6 @@ mod tests {
         let mut samples_bytes = Vec::new();
         let _ = file.read_to_end(&mut samples_bytes);
         let samples: &[f32] = bytemuck::cast_slice(&samples_bytes);
-        
         // Copy onto input
         let mut input_vec = vec![0.0 as f32; (nch*nslice) as usize];
         input_vec[..samples.len()].clone_from_slice(samples);
@@ -132,7 +134,15 @@ mod tests {
         // Process
         chann_obj.process(&mut input_vec, &mut output_buffer);
 
-        // Display
-        output_buffer.display(100);
+        let mut output_cpu = vec![Complex::<f32>::zero(); (nch*nslice) as usize];
+
+        // Transfer
+        unsafe{transfer(output_buffer.ptr, output_cpu.as_mut_ptr(), nch*nslice)};
+
+        let mut File1 = std::fs::File::create("../chann_output.32cf").unwrap();
+
+        let outp_slice: &mut [u8] = bytemuck::cast_slice_mut(&mut output_cpu);
+
+        let _ = File1.write_all(outp_slice);
     }
 }

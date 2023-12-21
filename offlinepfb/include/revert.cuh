@@ -1,4 +1,5 @@
-#include "offline_channelizer.cuh"
+#ifndef _SYNTHESIZER
+#define _SYNTHESIZER_
 #include <cufft.h>
 
 
@@ -9,6 +10,7 @@ struct box {
     int stop_chann;
     int box_id;
 
+    public:
     box(int, int, int, int, int);
     box();
 };
@@ -24,9 +26,11 @@ class synthesizer
     cufftHandle *large_plans;
 
     synthesizer(int, int, int);
-    void revert(cufftComplex*, box*, cufftHandle*, cufftComplex*, cufftComplex*, int, int);
+    void revert(cufftComplex*, box*, cufftComplex*, cufftComplex*, int, int);
     ~synthesizer();
 };
 
-void __global__ synthesize(cufftComplex*, box*, cufftHandle*, cufftComplex*, cufftComplex*, int);
+void __global__ synthesize(cufftComplex*, box*, cufftComplex*, int);
+
+#endif
 
