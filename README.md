@@ -10,11 +10,13 @@ For distortion free reconstruction, we need minimal overlap between the passband
 
 This concludes the theoretical justification for the choices of prototype synthesis and analysis filters.
 
-Let's take a look at some examples of forward channelization with the PFB. Depicted here is the channogram for the LPI combined scenario when Nch = 1024
+Let's take a look at some examples of forward channelization with the PFB. Depicted here is the channogram for the LPI combined scenario when Nch = 1024.
 
 ![Image Alt Text](/docs/Channelized_LPI_combined.png)
 
 Next, here is a constructed channogram for the DSSS scenario 
+
+![Image Alt Text](/docs/Channelized_LPI_combined.png)
 
 Usage instructions coming soon.
 
