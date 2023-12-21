@@ -1,5 +1,5 @@
 import numpy as np
-import scipy.signal as sig
+# import scipy.signal as sig
 import matplotlib.pyplot as plt
 
 # float_arr = list()
@@ -17,11 +17,11 @@ lpi_barr  = lpi_chann_array.reshape((1024, 262144))
 lpi_barr  = np.fft.fftshift(np.abs(lpi_barr), axes=0)
 
 fig, ax = plt.subplots()
-# Y = np.log10(dsss_barr[:, :40000])
-# ax[0].imshow(Y, aspect='auto', vmin=-0.2)
-# print(lpi_barr)
-Z = lpi_barr
-print(np.min(Z))
-ax.imshow(Z[:, :20000].T, aspect='auto', origin='lower')
-# ax.imshow(np.abs(Zxx.T), aspect='auto')
+
+ax.imshow(lpi_barr[:, :20000].T, aspect='auto', origin='lower')
 fig.savefig('Channelized_LPI_combined.png')
+ax.clear()
+Y = np.log10(dsss_barr[:, :40000])
+ax.imshow(Y.T, aspect='auto', origin='lower', vmin=0.5)
+# ax.imshow(np.abs(Zxx.T), aspect='auto')
+fig.savefig('Channelized_DSSS.png')

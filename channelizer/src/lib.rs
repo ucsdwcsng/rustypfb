@@ -118,64 +118,71 @@ mod tests {
             })
             .collect();
         let mut chann_obj = ChunkChannelizer::new(filter.as_mut_slice(), ntaps, nch, nslice);
+
+        // Setup the output buffer
+        let mut output_buffer: DevicePtr = DevicePtr::new(nch * nslice);
+        
+        // Setup the CPU output buffer
+        let mut output_cpu = vec![Complex::<f32>::zero(); (nch*nslice) as usize];
+        
+        // Setup the input vector
+        let mut input_vec = vec![0.0 as f32; (nch*nslice) as usize];
         
         /*
          * DSSS test
          */
-        let mut file = std::fs::File::open("../busyBand/DSSS.32cf").unwrap();
-        let mut samples_bytes = Vec::new();
-        let _ = file.read_to_end(&mut samples_bytes);
-        let samples: &[f32] = bytemuck::cast_slice(&samples_bytes);
-        println!("{}", samples.len());
+        let mut dsss_file = std::fs::File::open("../busyBand/DSSS.32cf").unwrap();
+        let mut dsss_samples_bytes = Vec::new();
+        let _ = dsss_file.read_to_end(&mut dsss_samples_bytes);
+        let dsss_samples: &[f32] = bytemuck::cast_slice(&dsss_samples_bytes);
+        // println!("{}", samples.len());
         // Copy onto input
-        let mut input_vec = vec![0.0 as f32; (nch*nslice) as usize];
-        input_vec[..samples.len()].clone_from_slice(samples);
-
-        // Setup the output buffer
-        let mut output_buffer: DevicePtr = DevicePtr::new(nch * nslice);
+        input_vec[..dsss_samples.len()].clone_from_slice(dsss_samples);
 
         // Process
         chann_obj.process(&mut input_vec, &mut output_buffer);
 
-        let mut output_cpu = vec![Complex::<f32>::zero(); (nch*nslice) as usize];
-
         // Transfer
         unsafe{transfer(output_buffer.ptr, output_cpu.as_mut_ptr(), nch*nslice)};
 
-        let mut File1 = std::fs::File::create("../dsss_chann_output.32cf").unwrap();
+        let mut dsss_file = std::fs::File::create("../dsss_chann_output.32cf").unwrap();
 
-        let outp_slice: &mut [u8] = bytemuck::cast_slice_mut(&mut output_cpu);
+        let dsss_outp_slice: &mut [u8] = bytemuck::cast_slice_mut(&mut output_cpu);
 
-        let _ = File1.write_all(outp_slice);
+        let _ = dsss_file.write_all(dsss_outp_slice);
+
+
+        // Reset input
+        input_vec.iter_mut().for_each(|x| *x = 0.0);
 
 
         /*
          * LPI combined
          */
-        let mut file_ = std::fs::File::open("../busyBand/lpi_combined.32cf").unwrap();
-        let mut samples_bytes_ = Vec::new();
-        let _ = file_.read_to_end(&mut samples_bytes_);
-        let samples_: &[f32] = bytemuck::cast_slice(&samples_bytes_);
-        println!("{}", samples_.len());
+        let mut lpi_file = std::fs::File::open("../busyBand/lpi_combined.32cf").unwrap();
+        let mut lpi_samples_bytes = Vec::new();
+        let _ = lpi_file.read_to_end(&mut lpi_samples_bytes);
+        let lpi_samples: &[f32] = bytemuck::cast_slice(&lpi_samples_bytes);
+        // println!("{}", samples_.len());
         // Copy onto input
-        let mut input_vec_ = vec![0.0 as f32; (nch*nslice) as usize];
-        input_vec_[..samples_.len()].clone_from_slice(samples_);
+        // let mut input_vec_ = vec![0.0 as f32; (nch*nslice) as usize];
+        input_vec[..lpi_samples.len()].clone_from_slice(lpi_samples);
 
-        // Setup the output buffer
-        let mut output_buffer_: DevicePtr = DevicePtr::new(nch * nslice);
+        // // Setup the output buffer
+        // let mut output_buffer_: DevicePtr = DevicePtr::new(nch * nslice);
 
         // Process
-        chann_obj.process(&mut input_vec_, &mut output_buffer_);
+        chann_obj.process(&mut input_vec, &mut output_buffer);
 
-        let mut output_cpu_ = vec![Complex::<f32>::zero(); (nch*nslice) as usize];
+        // let mut output_cpu_ = vec![Complex::<f32>::zero(); (nch*nslice) as usize];
 
         // Transfer
-        unsafe{transfer(output_buffer_.ptr, output_cpu_.as_mut_ptr(), nch*nslice)};
+        unsafe{transfer(output_buffer.ptr, output_cpu.as_mut_ptr(), nch*nslice)};
 
-        let mut File2 = std::fs::File::create("../lpi_chann_output.32cf").unwrap();
+        let mut lpi_file = std::fs::File::create("../lpi_chann_output.32cf").unwrap();
 
-        let outp_slice_: &mut [u8] = bytemuck::cast_slice_mut(&mut output_cpu_);
+        let lpi_outp_slice: &mut [u8] = bytemuck::cast_slice_mut(&mut output_cpu);
 
-        let _ = File2.write_all(outp_slice_);
+        let _ = lpi_file.write_all(lpi_outp_slice);
     }
 }
