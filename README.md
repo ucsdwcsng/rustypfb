@@ -16,7 +16,7 @@ Let's take a look at some examples of forward channelization with the PFB. Depic
 
 Next, here is a constructed channogram for the DSSS scenario 
 
-![Image Alt Text](/docs/Channelized_LPI_combined.png)
+![Image Alt Text](/docs/Channelized_DSSS.png)
 
 Usage instructions coming soon.
 
