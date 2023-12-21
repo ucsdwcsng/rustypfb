@@ -282,7 +282,7 @@ void channelizer::process(float* input, cufftComplex* output)
     scale<<<dimGridMultiply, dimBlock>>>(output_buffer, true, nchannel, nslice);
     // fft_shift<<<dimGridMultiply, dimBlock>>>(output_buffer, nslice, false);
     cufftExecC2C(plan_2, output_buffer, output_buffer, CUFFT_INVERSE);
-    scale<<<dimGridMultiply, dimBlock>>>(output_buffer, false, nchannel, nslice);
+    // scale<<<dimGridMultiply, dimBlock>>>(output_buffer, false, nchannel, nslice);
     alias<<<dimGridMultiply, dimBlock>>>(output_buffer, nslice);
     cudaMemcpy(output, output_buffer, sizeof(cufftComplex)*nslice*nchannel, cudaMemcpyDeviceToDevice);
     // cudaEventRecord(stop,0);

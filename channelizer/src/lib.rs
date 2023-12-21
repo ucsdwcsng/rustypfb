@@ -118,12 +118,15 @@ mod tests {
             })
             .collect();
         let mut chann_obj = ChunkChannelizer::new(filter.as_mut_slice(), ntaps, nch, nslice);
-
-        // Read data from file
+        
+        /*
+         * DSSS test
+         */
         let mut file = std::fs::File::open("../busyBand/DSSS.32cf").unwrap();
         let mut samples_bytes = Vec::new();
         let _ = file.read_to_end(&mut samples_bytes);
         let samples: &[f32] = bytemuck::cast_slice(&samples_bytes);
+        println!("{}", samples.len());
         // Copy onto input
         let mut input_vec = vec![0.0 as f32; (nch*nslice) as usize];
         input_vec[..samples.len()].clone_from_slice(samples);
@@ -139,10 +142,40 @@ mod tests {
         // Transfer
         unsafe{transfer(output_buffer.ptr, output_cpu.as_mut_ptr(), nch*nslice)};
 
-        let mut File1 = std::fs::File::create("../chann_output.32cf").unwrap();
+        let mut File1 = std::fs::File::create("../dsss_chann_output.32cf").unwrap();
 
         let outp_slice: &mut [u8] = bytemuck::cast_slice_mut(&mut output_cpu);
 
         let _ = File1.write_all(outp_slice);
+
+
+        /*
+         * LPI combined
+         */
+        let mut file_ = std::fs::File::open("../busyBand/lpi_combined.32cf").unwrap();
+        let mut samples_bytes_ = Vec::new();
+        let _ = file_.read_to_end(&mut samples_bytes_);
+        let samples_: &[f32] = bytemuck::cast_slice(&samples_bytes_);
+        println!("{}", samples_.len());
+        // Copy onto input
+        let mut input_vec_ = vec![0.0 as f32; (nch*nslice) as usize];
+        input_vec_[..samples_.len()].clone_from_slice(samples_);
+
+        // Setup the output buffer
+        let mut output_buffer_: DevicePtr = DevicePtr::new(nch * nslice);
+
+        // Process
+        chann_obj.process(&mut input_vec_, &mut output_buffer_);
+
+        let mut output_cpu_ = vec![Complex::<f32>::zero(); (nch*nslice) as usize];
+
+        // Transfer
+        unsafe{transfer(output_buffer_.ptr, output_cpu_.as_mut_ptr(), nch*nslice)};
+
+        let mut File2 = std::fs::File::create("../lpi_chann_output.32cf").unwrap();
+
+        let outp_slice_: &mut [u8] = bytemuck::cast_slice_mut(&mut output_cpu_);
+
+        let _ = File2.write_all(outp_slice_);
     }
 }
