@@ -208,6 +208,9 @@ channelizer::channelizer(complex<float> *coeff_arr, int npr, int nchan, int nsl)
     // Allocate GPU memory for filter coefficients.
     cudaMalloc((void **)&coeff_fft_polyphaseform, sizeof(cufftComplex) * nchannel * nslice);
 
+    // Allocate GPU memory for revert filter
+    cudaMalloc((void **)&coeff_fft_revert_polyphaseform, sizeof(cufftComplex) * nchannel * nslice);
+
     // Allocate GPU memory to hold the input on the GPU.
     cudaMalloc((void**)&input_buffer, sizeof(cufftComplex)*nchannel*nslice/2);
     
@@ -291,6 +294,32 @@ void channelizer::process(float* input, cufftComplex* output)
     // time += duration_;
 }
 
+// input will be page locked on Host
+void channelizer::revert(cufftComplex* input, cufftComplex* output)
+{
+    dim3 dimBlock(BLOCKCHANNELS, BLOCKSLICES);
+    dim3 dimGridMultiply(gridslices, gridchannels);
+    dim3 dimGridReshape(gridchannels / 2, gridslices);
+    // float duration_;
+    // time = 0.0;
+    // cudaEventRecord(start,0);
+    alias<<<dimGridMultiply, dimBlock>>>(input, nslice);
+    cudaMemcpy(input_buffer, input, sizeof(cufftComplex)*nchannel*nslice / 2, cudaMemcpyHostToDevice);
+    reshape<<<dimGridReshape, dimBlock>>>(input_buffer, reshaped_buffer, nchannel, nslice);
+    cufftExecC2C(plan_0, reshaped_buffer, scratch_buffer, CUFFT_FORWARD);
+    multiply<<<dimGridMultiply, dimBlock>>>(scratch_buffer, coeff_fft_polyphaseform, output_buffer, nchannel, nslice, gridchannels);
+    cufftExecC2C(plan_1, output_buffer, output_buffer, CUFFT_INVERSE);
+    scale<<<dimGridMultiply, dimBlock>>>(output_buffer, true, nchannel, nslice);
+    // fft_shift<<<dimGridMultiply, dimBlock>>>(output_buffer, nslice, false);
+    cufftExecC2C(plan_2, output_buffer, output_buffer, CUFFT_INVERSE);
+    // scale<<<dimGridMultiply, dimBlock>>>(output_buffer, false, nchannel, nslice);
+    cudaMemcpy(output, output_buffer, sizeof(cufftComplex)*nslice*nchannel, cudaMemcpyDeviceToDevice);
+    // cudaEventRecord(stop,0);
+    // cudaEventSynchronize(stop);
+    // cudaEventElapsedTime(&duration_, start, stop);
+    // time += duration_;
+}
+
 channelizer::~channelizer()
 {
     cufftDestroy(plan_0);
@@ -303,6 +332,7 @@ channelizer::~channelizer()
     delete [] n_2;
     cudaFree(input_buffer);
     cudaFree(coeff_fft_polyphaseform);
+    cudaFree(coeff_fft_revert_polyphaseform);
     cudaFree(scratch_buffer);
     cudaFree(reshaped_buffer);
     cudaFree(output_buffer);

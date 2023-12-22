@@ -157,6 +157,12 @@ class channelizer
     cufftComplex* coeff_fft_polyphaseform;
 
     /*
+     * Holds the Coefficient filter coefficients for revert
+     */
+
+    cufftComplex* coeff_fft_revert_polyphaseform;
+
+    /*
      * Output buffer to hold results.
      */
     cufftComplex* output_buffer;
@@ -185,6 +191,11 @@ class channelizer
      * Process function
      */
     void process(float*, cufftComplex*);
+
+    /*
+     * Revert function
+     */
+    void revert(cufftComplex*, cufftComplex*);
 
     /*
      * Destructor
