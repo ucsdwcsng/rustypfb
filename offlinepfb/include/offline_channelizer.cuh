@@ -168,9 +168,9 @@ class channelizer
     cufftComplex* output_buffer;
 
     /*
-     * Internal scratch buffer on GPU
+     * Buffer to hold revert results on GPU
      */
-    cufftComplex* scratch_buffer;
+    cufftComplex* revert_output_buffer;
 
     /*
      * Holds the reshaped inputs.
@@ -196,6 +196,11 @@ class channelizer
      * Revert function
      */
     void revert(cufftComplex*, cufftComplex*);
+
+    /*
+     * Set revert filter
+     */
+    void set_revert_filter(complex<float>*, int, int, int);
 
     /*
      * Destructor
