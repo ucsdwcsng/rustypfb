@@ -18,9 +18,11 @@ Next, here is a constructed channogram for the DSSS scenario
 
 ![Image Alt Text](/docs/Channelized_DSSS.png)
 
-We channelize and then revert it fully. Here is the STFT of the same
+We channelize and then revert the previous example fully. Here is the STFT of the reverted IQ
 
 ![Image Alt Text](/docs/reverted_stft.png)
+
+We see no aliasing artifacts. Perfect reconstruction!
 
 Usage instructions coming soon.
 
