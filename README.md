@@ -18,6 +18,10 @@ Next, here is a constructed channogram for the DSSS scenario
 
 ![Image Alt Text](/docs/Channelized_DSSS.png)
 
+We channelize and then revert it fully. Here is the STFT of the same
+
+![Image Alt Text](/docs/reverted_stft.png)
+
 Usage instructions coming soon.
 
 

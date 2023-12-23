@@ -25,39 +25,49 @@ extern "C"
         reinterpret_cast<channelizer*>(chann)->process(input, rhs);
     }
 
-    cufftComplex* memory_allocate_device(int size)
+    void chann_set_revert_filter(chann* chann, complex<float>* filt)
     {
-        // printf("Memory is getting allocated in C\n");
-        cufftComplex* output;
-        cudaMalloc((void**)&output, sizeof(cufftComplex)*size);
-        return output;
+        reinterpret_cast<channelizer*>(chann)->set_revert_filter(filt);
     }
 
-    void memory_deallocate_device(cufftComplex* inp)
+    void chann_revert(chann* chann, cufftComplex* input, cufftComplex* output)
     {
-        cudaFree(inp);
+        reinterpret_cast<channelizer*>(chann)->revert(input, output);
     }
 
-    complex<float>* memory_allocate_cpu(int size)
-    {
-        complex<float>* output = new complex<float> [size];
-        return output;
-    }
+    // cufftComplex* memory_allocate_device(int size)
+    // {
+    //     // printf("Memory is getting allocated in C\n");
+    //     cufftComplex* output;
+    //     cudaMalloc((void**)&output, sizeof(cufftComplex)*size);
+    //     return output;
+    // }
 
-    void memory_deallocate_cpu(complex<float>* inp)
-    {
-        delete [] inp;
-    }
+    // void memory_deallocate_device(cufftComplex* inp)
+    // {
+    //     cudaFree(inp);
+    // }
 
-    float bessel_func(float x)
-    {
-        return cyl_bessel_if(0.0, x);
-    }
+    // complex<float>* memory_allocate_cpu(int size)
+    // {
+    //     complex<float>* output = new complex<float> [size];
+    //     return output;
+    // }
 
-    void transfer(cufftComplex* in, cufftComplex* out, int size)
-    {
-        cudaMemcpy(out, in, sizeof(cufftComplex)*size, cudaMemcpyDeviceToHost);
-    }
+    // void memory_deallocate_cpu(complex<float>* inp)
+    // {
+    //     delete [] inp;
+    // }
+
+    // float bessel_func(float x)
+    // {
+    //     return cyl_bessel_if(0.0, x);
+    // }
+
+    // void transfer(cufftComplex* in, cufftComplex* out, int size)
+    // {
+    //     cudaMemcpy(out, in, sizeof(cufftComplex)*size, cudaMemcpyDeviceToHost);
+    // }
 
     synth* synth_create(int chann, int tap, int slice)
     {   

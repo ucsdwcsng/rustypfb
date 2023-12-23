@@ -1,15 +1,17 @@
 [package]
 name = "channelizer"
 version = "0.1.0"
-edition = "2021"
+edition.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-bytemuck = "1.14.0"
-libm = "0.2.8"
-num = "0.4.1"
-num-complex = { version = "0.4.4", features=["bytemuck"]} 
-offlinepfb-sys = { path = "../offlinepfb-sys"}
+bytemuck.workspace = true
+libm.workspace = true
+num.workspace = true
+num-complex.workspace = true
+offlinepfb-sys.workspace = true
+analyzer.workspace = true
+rustdevice.workspace = true
 
 [build-dependencies]
-cc = "1.0.83"
+cc.workspace = true

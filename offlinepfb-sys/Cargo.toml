@@ -1,15 +1,15 @@
 [package]
 name = "offlinepfb-sys"
 version = "0.1.0"
-edition = "2021"
+edition.workspace = true
 links = "offlinepfb"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-cc = "1.0.83"
+cc.workspace = true
 
 [dependencies]
-cc = "1.0.83"
-libm = "0.2.8"
-num = "0.4.1"
+cc.workspace = true
+libm.workspace = true
+num.workspace = true

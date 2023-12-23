@@ -238,7 +238,7 @@ channelizer::channelizer(complex<float> *coeff_arr, int npr, int nchan, int nsl)
     make_coeff_matrix(coeff_fft_polyphaseform, coeff_arr, nproto, nchannel, nslice);
 }
 
-void channelizer::set_revert_filter(complex<float> *coeff_arr, int npr, int nchan, int nsl)
+void channelizer::set_revert_filter(complex<float> *coeff_arr)
 {
     make_coeff_matrix(coeff_fft_revert_polyphaseform, coeff_arr, nproto, nchannel, nslice);
 }
@@ -275,6 +275,7 @@ void channelizer::revert(cufftComplex* input, cufftComplex* output)
     dim3 dimBlock(BLOCKCHANNELS, BLOCKSLICES);
     dim3 dimGridMultiply(gridslices, gridchannels);
     dim3 dimGridReshape(gridchannels / 2, gridslices);
+    dim3 dimGridReconstruct(gridslices, gridchannels / 2);
     // float duration_;
     // time = 0.0;
     // cudaEventRecord(start,0);
@@ -285,7 +286,7 @@ void channelizer::revert(cufftComplex* input, cufftComplex* output)
     cufftExecC2C(plan_1, output_buffer, output_buffer, CUFFT_FORWARD);
     multiply<<<dimGridMultiply, dimBlock>>>(output_buffer, coeff_fft_revert_polyphaseform, output_buffer, nchannel, nslice, gridchannels);
     cufftExecC2C(plan_1, output_buffer, output_buffer, CUFFT_INVERSE);
-    reconstruct_addition<<<dimGridReshape, dimBlock>>>(output_buffer, input_buffer, nchannel, nslice);
+    reconstruct_addition<<<dimGridReconstruct, dimBlock>>>(output_buffer, input_buffer, nchannel, nslice);
     // fft_shift<<<dimGridMultiply, dimBlock>>>(output_buffer, nslice, false);
     
     // scale<<<dimGridMultiply, dimBlock>>>(output_buffer, false, nchannel, nslice);

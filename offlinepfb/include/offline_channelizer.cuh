@@ -200,7 +200,7 @@ class channelizer
     /*
      * Set revert filter
      */
-    void set_revert_filter(complex<float>*, int, int, int);
+    void set_revert_filter(complex<float>*);
 
     /*
      * Destructor

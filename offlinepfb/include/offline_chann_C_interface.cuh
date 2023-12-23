@@ -20,14 +20,16 @@ extern "C"
     // void chann_process(chann*, float*, float*, complex<float>*);
 
     void chann_process(chann*, float*, cufftComplex*);
+    void chann_set_revert_filter(chann*, complex<float>*);
+    void chann_revert(chann*, cufftComplex*, cufftComplex*);
 
-    cufftComplex* memory_allocate_device(int);
-    void memory_deallocate_device(cufftComplex*);
-    complex<float>* memory_allocate_cpu(int);
-    void memory_deallocate_cpu(complex<float>*);
+    // cufftComplex* memory_allocate_device(int);
+    // void memory_deallocate_device(cufftComplex*);
+    // complex<float>* memory_allocate_cpu(int);
+    // void memory_deallocate_cpu(complex<float>*);
 
-    float bessel_func(float);
-    void transfer(cufftComplex*, cufftComplex*, int);
+    // float bessel_func(float);
+    // void transfer(cufftComplex*, cufftComplex*, int);
 
     synth* synth_create(int, int, int);
     void synth_destroy(synth*);

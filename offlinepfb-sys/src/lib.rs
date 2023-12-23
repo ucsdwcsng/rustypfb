@@ -35,34 +35,41 @@ extern "C" {
     /// specified number of channels. The output is written to a GPU array and outp points to that array.
     pub fn chann_process(channobj: *mut Chann, inp: *mut f32, outp: *mut Complex<f32>);
 
-    /// Allocated GPU memory for the specified number of float 32s. Generics not allowed
-    /// for C style linkage, therefore, this only works for float 32s.
-    pub fn memory_allocate_device(inp: i32) -> *mut Complex<f32>;
+    pub fn chann_revert(channobj: *mut Chann, inp: *mut Complex<f32>, outp: *mut Complex<f32>);
 
-    /// Deallocates memory on GPU that is pointed to by the input pointer.
-    pub fn memory_deallocate_device(inp: *mut Complex<f32>);
+    pub fn chann_set_revert_filter(
+        channobj: *mut Chann,
+        filt: *mut Complex<f32>
+    );
 
-    /// CPU memory allocation function. Returns the pointer to the allocated heap memory.
-    pub fn memory_allocate_cpu(inp: i32) -> *mut Complex<f32>;
+    // /// Allocated GPU memory for the specified number of float 32s. Generics not allowed
+    // /// for C style linkage, therefore, this only works for float 32s.
+    // pub fn memory_allocate_device(inp: i32) -> *mut Complex<f32>;
 
-    /// Deallocates CPU memory pointed to by the input.
-    pub fn memory_deallocate_cpu(inp: *mut Complex<f32>);
+    // /// Deallocates memory on GPU that is pointed to by the input pointer.
+    // pub fn memory_deallocate_device(inp: *mut Complex<f32>);
 
-    /// Bessel function computation that used C++17 cmath library. This is used because
-    /// I did not find any scientific Rust libraries that can compute these things faster than this.
-    pub fn bessel_func(inp: f32) -> f32;
+    // /// CPU memory allocation function. Returns the pointer to the allocated heap memory.
+    // pub fn memory_allocate_cpu(inp: i32) -> *mut Complex<f32>;
 
-    /// Function that transfers count number of f32s from GPU to CPU, with the input and output pointers specified.
-    pub fn transfer(inp: *mut Complex<f32>, outp: *mut Complex<f32>, count: i32);
+    // /// Deallocates CPU memory pointed to by the input.
+    // pub fn memory_deallocate_cpu(inp: *mut Complex<f32>);
+
+    // /// Bessel function computation that used C++17 cmath library. This is used because
+    // /// I did not find any scientific Rust libraries that can compute these things faster than this.
+    // pub fn bessel_func(inp: f32) -> f32;
+
+    // /// Function that transfers count number of f32s from GPU to CPU, with the input and output pointers specified.
+    // pub fn transfer(inp: *mut Complex<f32>, outp: *mut Complex<f32>, count: i32);
 }
 #[cfg(test)]
 mod tests {
     #[test]
     fn it_works() {
-        use super::{memory_allocate_device, memory_deallocate_device, bessel_func};
-        for ind in 0..10 {
-            let d = unsafe {memory_allocate_device(100) };
-            unsafe { memory_deallocate_device(d) };
-        }
+        // use super::{bessel_func, memory_allocate_device, memory_deallocate_device};
+        // for ind in 0..10 {
+        //     let d = unsafe { memory_allocate_device(100) };
+        //     unsafe { memory_deallocate_device(d) };
+        // }
     }
 }
