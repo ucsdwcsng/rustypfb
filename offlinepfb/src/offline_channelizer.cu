@@ -112,6 +112,15 @@ void __global__ scale(cufftComplex* inp, bool row, int nchannel, int nslice)
     }
 }
 
+void __global__ scale_and_fft_shift(cufftComplex* inp, int nchannel, int nslice)
+{
+    int idy = blockIdx.y * blockDim.y + threadIdx.y;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int inp_id = idy*nslice + idx;
+    int sign = 1 - 2*(idy % 2);
+    inp[inp_id] = make_cuComplex(sign*inp[inp_id].x / static_cast<float>(nslice), sign*inp[inp_id].y / static_cast<float>(nslice));
+}
+
 void __global__ alias(cufftComplex* inp, int nslice)
 {
     int x_coord = blockIdx.x * blockDim.x + threadIdx.x;
@@ -257,7 +266,7 @@ void channelizer::process(float* input, cufftComplex* output)
     cufftExecC2C(plan_0, reshaped_buffer, reshaped_buffer, CUFFT_FORWARD);
     multiply<<<dimGridMultiply, dimBlock>>>(reshaped_buffer, coeff_fft_polyphaseform, output_buffer, nchannel, nslice, gridchannels);
     cufftExecC2C(plan_1, output_buffer, output_buffer, CUFFT_INVERSE);
-    scale<<<dimGridMultiply, dimBlock>>>(output_buffer, true, nchannel, nslice);
+    scale_and_fft_shift<<<dimGridMultiply, dimBlock>>>(output_buffer, nchannel, nslice);
     // fft_shift<<<dimGridMultiply, dimBlock>>>(output_buffer, nslice, false);
     cufftExecC2C(plan_2, output_buffer, output_buffer, CUFFT_INVERSE);
     // scale<<<dimGridMultiply, dimBlock>>>(output_buffer, false, nchannel, nslice);
@@ -282,6 +291,7 @@ void channelizer::revert(cufftComplex* input, cufftComplex* output)
     cudaMemcpy(output_buffer, input, sizeof(cufftComplex)*nchannel*nslice, cudaMemcpyDeviceToDevice);
     alias<<<dimGridMultiply, dimBlock>>>(output_buffer, nslice);
     cufftExecC2C(plan_2, output_buffer, output_buffer, CUFFT_FORWARD);
+    fft_shift<<<dimGridMultiply, dimBlock>>>(output_buffer, nslice, false);
     // cudaMemcpy(input_buffer, input, sizeof(cufftComplex)*nchannel*nslice / 2, cudaMemcpyHostToDevice);
     cufftExecC2C(plan_1, output_buffer, output_buffer, CUFFT_FORWARD);
     multiply<<<dimGridMultiply, dimBlock>>>(output_buffer, coeff_fft_revert_polyphaseform, output_buffer, nchannel, nslice, gridchannels);
