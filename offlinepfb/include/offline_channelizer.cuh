@@ -17,6 +17,7 @@ using std::make_shared;
 
 
 void make_coeff_matrix(cufftComplex*, complex<float>*, int, int, int);
+void __global__ half_multiply(cufftComplex*, cufftComplex*, cufftComplex*, int, int, int);
 void __global__ multiply(cufftComplex*, cufftComplex*, cufftComplex*, int, int, int);
 void __global__ scale(cufftComplex* , bool, int, int);
 void __global__ alias(cufftComplex*, int);
@@ -181,6 +182,12 @@ class channelizer
      * Holds input on GPU.
      */
     cufftComplex* input_buffer;
+
+    /*
+     * Scratch buffer for revert filter application
+     */
+
+    cufftComplex* scratch_buffer;
 
     /*
      * Constructor

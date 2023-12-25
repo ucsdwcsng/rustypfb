@@ -20,8 +20,8 @@ synthesizer::synthesizer(int chann, int tap, int slice)
     int ostride = nslice;
     int idist = 1;
     int odist = 1;
-    vector<int> channel_vec{chann / 32, chann / 16, chann / 8, chann / 4, chann / 2, chann};
-    vector<int> slice_vec{slice / 32, slice / 16, slice / 8, slice / 4, slice / 2, slice};
+    vector<int> channel_vec{chann / 8, chann / 4, chann / 2};
+    vector<int> slice_vec{slice / 8, slice / 4, slice / 2};
     for (int chann_dim = 0; chann_dim < 6; chann_dim++)
     {
         for (int slice_dim = 0; slice_dim < 6; slice_dim++)

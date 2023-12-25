@@ -1,7 +1,8 @@
 #ifndef _SYNTHESIZER
 #define _SYNTHESIZER_
 #include <cufft.h>
-
+#include <vector>
+using std::vector;
 
 struct box {
     int start_time;
@@ -24,6 +25,8 @@ class synthesizer
 
     cufftHandle *input_plans;
     cufftHandle *downconvert_plans;
+
+    vector<cufftComplex*> scratch_spaces;
 
     synthesizer(int, int, int);
     void revert(cufftComplex*, box*, cufftComplex*, cufftComplex*, int, int);

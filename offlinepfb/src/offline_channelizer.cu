@@ -74,7 +74,7 @@ void make_coeff_matrix(cufftComplex* gpu, complex<float>* inp, int nproto, int n
 
 }
 
-void __global__ multiply(cufftComplex* inp, cufftComplex* coeff, cufftComplex* output, int nchannel, int nslice, int griddim)
+void __global__ half_multiply(cufftComplex* inp, cufftComplex* coeff, cufftComplex* output, int nchannel, int nslice, int griddim)
 {
     int half         = blockIdx.y;
     int input_xcoord = blockIdx.x * blockDim.x + threadIdx.x;
@@ -97,6 +97,16 @@ void __global__ multiply(cufftComplex* inp, cufftComplex* coeff, cufftComplex* o
     cufftComplex lhs = inp[input_id];
     cufftComplex rhs = coeff[output_id];
     output[output_id] = make_cuComplex(lhs.x*rhs.x - lhs.y*rhs.y, lhs.x*rhs.y + lhs.y*rhs.x);
+}
+
+void __global__ multiply(cufftComplex* inp, cufftComplex* coeff, cufftComplex* output, int nchannel, int nslice, int griddim)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int idy   = blockIdx.y * blockDim.y + threadIdx.y;
+    int id    = idy * nslice + idx;
+    cufftComplex lhs = inp[id];
+    cufftComplex rhs = coeff[id];
+    output[id] = make_cuComplex(lhs.x*rhs.x - lhs.y*rhs.y, lhs.x*rhs.y + lhs.y*rhs.x);
 }
 
 void __global__ scale(cufftComplex* inp, bool row, int nchannel, int nslice)
@@ -158,8 +168,8 @@ void __global__ reconstruct_addition(cufftComplex* inp, cufftComplex* output, in
     __shared__ cufftComplex tile[BLOCKCHANNELS][BLOCKSLICES];
     int input_x_coord = blockIdx.x * blockDim.x + threadIdx.x;
     int input_y_coord = blockIdx.y * blockDim.y + threadIdx.y;
-    auto inter   = inp + nslice*input_y_coord + input_x_coord;
-    auto inter_2 = inp + nslice*(input_y_coord + nchannel / 2) + input_x_coord;
+    auto inter   = inp + nslice*(nchannel / 2 - input_y_coord) + input_x_coord;
+    auto inter_2 = inp + nslice*(nchannel - input_y_coord) + input_x_coord;
     tile[threadIdx.x][threadIdx.y] = make_cuComplex((inter->x + inter_2->x),(inter->y + inter_2->y));
     __syncthreads();
     int output_grid_y_coord = (blockIdx.x * blockDim.x + threadIdx.y) * (nchannel / 2);
@@ -198,6 +208,9 @@ channelizer::channelizer(complex<float> *coeff_arr, int npr, int nchan, int nsl)
 
     // Allocate GPU memory to hold channelizer outputs.
     cudaMalloc((void **)&output_buffer, sizeof(cufftComplex) * nchannel * nslice);
+
+    // Allocate GPU memory to hold filter application outputs.
+    cudaMalloc((void **)&scratch_buffer, sizeof(cufftComplex) * nchannel * nslice);
 
     // Allocate GPU memory to hold intermediate scratch results.
     cudaMalloc((void **)&revert_output_buffer, sizeof(cufftComplex) * (nchannel / 2) * nslice);
@@ -264,7 +277,7 @@ void channelizer::process(float* input, cufftComplex* output)
     cudaMemcpy(input_buffer, input, sizeof(cufftComplex)*nchannel*nslice / 2, cudaMemcpyHostToDevice);
     reshape<<<dimGridReshape, dimBlock>>>(input_buffer, reshaped_buffer, nchannel, nslice);
     cufftExecC2C(plan_0, reshaped_buffer, reshaped_buffer, CUFFT_FORWARD);
-    multiply<<<dimGridMultiply, dimBlock>>>(reshaped_buffer, coeff_fft_polyphaseform, output_buffer, nchannel, nslice, gridchannels);
+    half_multiply<<<dimGridMultiply, dimBlock>>>(reshaped_buffer, coeff_fft_polyphaseform, output_buffer, nchannel, nslice, gridchannels);
     cufftExecC2C(plan_1, output_buffer, output_buffer, CUFFT_INVERSE);
     scale_and_fft_shift<<<dimGridMultiply, dimBlock>>>(output_buffer, nchannel, nslice);
     // fft_shift<<<dimGridMultiply, dimBlock>>>(output_buffer, nslice, false);
@@ -291,11 +304,11 @@ void channelizer::revert(cufftComplex* input, cufftComplex* output)
     cudaMemcpy(output_buffer, input, sizeof(cufftComplex)*nchannel*nslice, cudaMemcpyDeviceToDevice);
     alias<<<dimGridMultiply, dimBlock>>>(output_buffer, nslice);
     cufftExecC2C(plan_2, output_buffer, output_buffer, CUFFT_FORWARD);
-    fft_shift<<<dimGridMultiply, dimBlock>>>(output_buffer, nslice, false);
+    scale_and_fft_shift<<<dimGridMultiply, dimBlock>>>(output_buffer, nchannel, nslice);
     // cudaMemcpy(input_buffer, input, sizeof(cufftComplex)*nchannel*nslice / 2, cudaMemcpyHostToDevice);
     cufftExecC2C(plan_1, output_buffer, output_buffer, CUFFT_FORWARD);
-    multiply<<<dimGridMultiply, dimBlock>>>(output_buffer, coeff_fft_revert_polyphaseform, output_buffer, nchannel, nslice, gridchannels);
-    cufftExecC2C(plan_1, output_buffer, output_buffer, CUFFT_INVERSE);
+    multiply<<<dimGridMultiply, dimBlock>>>(output_buffer, coeff_fft_revert_polyphaseform, scratch_buffer, nchannel, nslice, gridchannels);
+    cufftExecC2C(plan_1, scratch_buffer, output_buffer, CUFFT_INVERSE);
     reconstruct_addition<<<dimGridReconstruct, dimBlock>>>(output_buffer, input_buffer, nchannel, nslice);
     // fft_shift<<<dimGridMultiply, dimBlock>>>(output_buffer, nslice, false);
     
@@ -323,4 +336,5 @@ channelizer::~channelizer()
     cudaFree(revert_output_buffer);
     cudaFree(reshaped_buffer);
     cudaFree(output_buffer);
+    cudaFree(scratch_buffer);
 }

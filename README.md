@@ -14,13 +14,17 @@ Let's take a look at some examples of forward channelization with the PFB. Depic
 
 ![Image Alt Text](/docs/Channelized_LPI_combined.png)
 
-Next, here is a constructed channogram for the DSSS scenario 
+Next, here is the constructed channogram for the DSSS scenario 
 
 ![Image Alt Text](/docs/Channelized_DSSS.png)
 
-We channelize and then revert the previous example fully. Here is the STFT of the reverted IQ
+To test the reconstruction algorithm, we first channelize the input, revert the channelized output and then plot the spectrum of the reverted IQ.
 
-![Image Alt Text](/docs/reverted_stft.png)
+Here is the reverted spectrum for the DSSS scenario
+![Image Alt Text](/docs/reverted_stft_dsss.png),
+
+whereas, the reverted spectrum for the LPI combined scenario
+![Image Alt Text](/docs/reverted_stft_lpi.png),
 
 We see no aliasing artifacts. Perfect reconstruction!
 
