@@ -18,15 +18,17 @@ Next, here is the constructed channogram for the DSSS scenario
 
 ![Image Alt Text](/docs/Channelized_DSSS.png)
 
-To test the reconstruction algorithm, we first channelize the input, revert the channelized output and then plot the spectrum of the reverted IQ.
+We can plot the simple spectrogram for the same IQ files and obtain the same result as above.
 
-Here is the reverted spectrum for the DSSS scenario
-![Image Alt Text](/docs/reverted_stft_dsss.png),
+To test the reconstruction algorithm, we first channelize the input, perform full revert of the channelized output and then visualize the spectrum of the reverted IQ.
 
-whereas, the reverted spectrum for the LPI combined scenario
-![Image Alt Text](/docs/reverted_stft_lpi.png),
+Here is the reverted spectrum for the LPI combined scenario
+![Image Alt Text](/docs/reverted_stft_lpi.png)
 
-We see no aliasing artifacts. Perfect reconstruction!
+and the same for the DSSS scenario
+![Image Alt Text](/docs/reverted_stft_dsss.png)
+
+We see no aliasing artifacts, and no distortions in the reverted spectrum. Perfect reconstruction!
 
 Usage instructions coming soon.
 
