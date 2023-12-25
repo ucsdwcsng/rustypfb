@@ -5,10 +5,10 @@
 using std::vector;
 
 struct box {
-    int start_time;
-    int stop_time;
-    int start_chann;
-    int stop_chann;
+    int time_start;
+    int time_stop;
+    int chann_start;
+    int chann_stop;
     int box_id;
 
     public:
@@ -26,14 +26,18 @@ class synthesizer
     cufftHandle *input_plans;
     cufftHandle *downconvert_plans;
 
-    vector<cufftComplex*> scratch_spaces;
+    cufftComplex* scratch_space;
+    cufftComplex* multiply_scratch_space;
+    cufftComplex* output;
+    cufftComplex** filters;
+
+    vector<int> output_start_times;
 
     synthesizer(int, int, int);
-    void revert(cufftComplex*, box*, cufftComplex*, cufftComplex*, int, int);
+    void reconstruct(cufftComplex*, box);
+    void revert(cufftComplex*, box*, cufftComplex*, cufftComplex*, int);
     ~synthesizer();
 };
-
-void __global__ synthesize(cufftComplex*, box*, cufftComplex*, int);
 
 #endif
 

@@ -20,10 +20,11 @@ void make_coeff_matrix(cufftComplex*, complex<float>*, int, int, int);
 void __global__ half_multiply(cufftComplex*, cufftComplex*, cufftComplex*, int, int, int);
 void __global__ multiply(cufftComplex*, cufftComplex*, cufftComplex*, int, int, int);
 void __global__ scale(cufftComplex* , bool, int, int);
+void __global__ scale_and_fft_shift(cufftComplex*, int, int);
 void __global__ alias(cufftComplex*, int);
-// void __global__ club(float*, cufftComplex*, int);
 void __global__ reshape(cufftComplex*, cufftComplex*, int, int);
 void __global__ fft_shift(cufftComplex*, int, bool);
+void __global__ reconstruct_addition(cufftComplex*, cufftComplex*, int, int);
 
 // /*
 //  * Specifies the time frequency Box that needs to be reverted.

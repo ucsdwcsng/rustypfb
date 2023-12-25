@@ -27,7 +27,7 @@ ax.clear()
 
 f, t, Zxx = sig.stft(dsss_output_array, nperseg=1024, noverlap=512)
 
-ax.imshow(np.log10(np.abs(np.fft.fftshift(Zxx, axes=0).T[:40000,])), aspect='auto', origin='lower', vmin=0.1)
+ax.imshow(np.log10(np.abs(np.fft.fftshift(Zxx, axes=0).T[:40000,])), aspect='auto', origin='lower', vmin=0.5)
 
 fig.savefig('reverted_stft_dsss.png')
 

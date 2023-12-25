@@ -84,10 +84,10 @@ extern "C"
     //     return reinterpret_cast<c_box*>(new box(a, b, c, d, e));
     // }
 
-    void synth_revert(synth* inp, cufftComplex* input, box* Box, cufftComplex* scratch, cufftComplex* output, int taps, int nboxes)
-    {
-        reinterpret_cast<synthesizer*>(inp)->revert(input, Box, scratch, output, taps, nboxes);
-    }
+    // void synth_revert(synth* inp, cufftComplex* input, box* Box, cufftComplex* scratch, cufftComplex* output, int taps, int nboxes)
+    // {
+    //     reinterpret_cast<synthesizer*>(inp)->revert(input, Box, scratch, output, nboxes);
+    // }
 }
 
     
