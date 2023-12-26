@@ -32,7 +32,7 @@ where $N_{\text{sl}}$ is the number of samples in each channel at output.
 
 The algorithm implemented here, first preselects buffers of size $T_i$ for $1\leq i\leq k$. These buffers will copy the samples of the to-be-reverted box from the full channogram with appropriate padding, and apply the synthesis filter for that buffer size.
 
-Now, consider the $j$-th box. Suppose its size is $A_k$. Then, exactly one of the following two conditions hold
+Now, consider the $k$-th box. Suppose its size is $A_k$. Then, exactly one of the following two conditions hold
 
 1. Either $A_k \leq T_i \leq 2 A_k$ for some $i$, or,
 2. $2A_k \leq T$, where $T$ is the size of the smallest pre-selected buffer.
