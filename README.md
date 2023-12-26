@@ -46,8 +46,6 @@ $$ T\leq t_j, F\leq f_j$$
 
 for every box $A_j$. Under these assumptions,
 
-1.
-
 $$2^k T \leq t_j \leq 2^{k+1} T $$
 
 and 
