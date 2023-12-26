@@ -22,7 +22,7 @@ In both the cases, we see no aliasing artifacts, and no distortions in the rever
 
 Next, we discuss the revert algorithm, specifically bounds on the memory requirements of the same. 
 
-The synthesizer needs to write the reconstructed IQ samples to an output buffer. The sizes of the boxes to be reverted cannot be known in advance. Therefore, in order to bound the size od the output memory in advance, we need to give a reasonable upper bound on the number of boxes to be reverted. The interesting thing about the following analysis is that it would return a bound on the number of boxes that are 'small' in some sense.
+The synthesizer needs to write the reconstructed IQ samples to an output buffer. The sizes of the boxes to be reverted cannot be known in advance. Therefore, in order to bound the size of the output memory in advance, we need to give a reasonable upper bound on the number of boxes to be reverted. The interesting thing about the following analysis is that it would return a bound on the number of boxes that are 'small' in some sense.
 
 Suppose we process a chunk of samples of size $S / 2$. The output of the $N_{\text{ch}}$ channelizer would then have size
 
@@ -30,11 +30,14 @@ $$ N_{\text{ch}} * N_{\text{sl}} = S $$
 
 where $N_{\text{sl}}$ is the number of samples in each channel at output.
 
-The algorithm implemented here, first preallocates buffers of size $T_i = 2^i T$ for $1\leq i\leq k$. For a given box, the tightest buffer that covers the box will be selected to copy the samples of the box from the full channogram with appropriate padding, and apply the synthesis filter for that buffer size.
+The algorithm implemented here, first preallocates buffers of size $T_i = 2^i T$ for $1\leq i\leq k$. The dimensions of these buffers in the time and frequency dimensions are of the form $\{T, 2T, 2^2T,\cdots\}$ and $\{F, 2F, 2^2 F, \cdots\}$. Then, for a given box, the tightest buffer that covers the box will be selected to copy the samples of the box from the full channogram with appropriate padding, and apply the synthesis filter for that buffer size.
 
-Now, consider the $j$-th box. Suppose its size is $A_j$. Then, exactly one of the following two conditions hold
+Now, consider the $j$-th box. Suppose its size is $A_j$ and the time and frequency dimensions of this box are $(t_j, f_j)$. Then, exactly one of the following conditions hold
 
-1. Either $A_k \leq T_i \leq 4 A_k$ for some $i$. This happens when either in time or frequency, the box dimension of $A_k$ (say, $l_i$) satisfies $l_i\leq b_k\leq 2l_i$.
+1. Either $2^k T \leq t_j \leq 2^{k+1} T$ and $2^l F\leq f_j\leq 2^{l+1} F$ for some $k, l$. In this case, we can write that the size of the box $A_j$ satisfies 
+
+$$ A_j \leq T_i \leq 4A_j $$
+
 2. $4A_k \leq T$, where $T$ is the size of the smallest pre-selected buffer.
 
 Boxes satisfying the first condition will be called "large", while boxes satisfying the second condition will be called "small". Thus, processing a large box needs an output memory allocation of size $\frac{T_i}{2}$. 
