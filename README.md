@@ -51,13 +51,13 @@ This proves that large boxes can be processed with an output memory allocation o
 
 For small boxes, we have,
 
-$$ \sum_{k| A_k \text{ is a small box}} T = N_{\text{small}} T$$.
+$$ \sum_{k| A_k \text{ is a small box}} T = N_{\text{small}} T$$
 
 Thus, the total output size for the small boxes can be bounded by $\frac{N_{\text{small}} T}{4}$. If we want to bound this by $S$, then, we get the following condition
 
-$$ N_{\text{small}}\leq \frac{4S}{T}$$.
+$$ N_{\text{small}}\leq \frac{4S}{T}$$
 
-This shows that the smaller $T$ is, the larger the number of small boxes the implementation can process with the same fixed output buffer size.
+This shows that the smaller $T$ is, the number of small boxes the implementation can process with the same fixed output buffer size is greater.
 
 Usage instructions coming soon.
 
