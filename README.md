@@ -30,32 +30,32 @@ $$ N_{\text{ch}} * N_{\text{sl}} = S $$
 
 where $N_{\text{sl}}$ is the number of samples in each channel at output.
 
-The algorithm implemented here, first preselects buffers of size $T_i$ for $1\leq i\leq k$. These buffers will copy the samples of the to-be-reverted box from the full channogram with appropriate padding, and apply the synthesis filter for that buffer size.
+The algorithm implemented here, first preallocates buffers of size $T_i = 2^i T$ for $1\leq i\leq k$. For a given box, the tightest buffer that covers the box will be selected to copy the samples of the box from the full channogram with appropriate padding, and apply the synthesis filter for that buffer size.
 
-Now, consider the $k$-th box. Suppose its size is $A_k$. Then, exactly one of the following two conditions hold
+Now, consider the $j$-th box. Suppose its size is $A_j$. Then, exactly one of the following two conditions hold
 
-1. Either $A_k \leq T_i \leq 2 A_k$ for some $i$, or,
-2. $2A_k \leq T$, where $T$ is the size of the smallest pre-selected buffer.
+1. Either $A_k \leq T_i \leq 4 A_k$ for some $i$. This happens when either in time or frequency, the box dimension of $A_k$ (say, $l_i$) satisfies $l_i\leq b_k\leq 2l_i$.
+2. $4A_k \leq T$, where $T$ is the size of the smallest pre-selected buffer.
 
 Boxes satisfying the first condition will be called "large", while boxes satisfying the second condition will be called "small". Thus, processing a large box needs an output memory allocation of size $\frac{T_i}{2}$. 
 
-Whereas, for a small box, an allocation of size $T / 4$ is needed.
+Whereas, for a small box, an allocation of size $T / 8$ is needed.
 
 Next, large boxes will not be a problem because the memory allocation required is 
 
-$$ \sum_{k| A_k \text{ is a large box}} T_i \leq 2 \sum_{k | A_k \text{ is a large box}} A_k \leq 2S $$
+$$ \sum_{k| A_k \text{ is a large box}} T_i \leq 4 \sum_{k | A_k \text{ is a large box}} A_k \leq 4S $$
 
 since the boxes are non-overlapping in the channogram.
 
-This proves that large boxes can be processed with an output memory allocation of size at most $S$, which is the size of the original channogram.
+This proves that large boxes can be processed with an output memory allocation of size at most $2S$, which is twice the size of the original channogram.
 
 For small boxes, we have,
 
 $$ \sum_{k| A_k \text{ is a small box}} T = N_{\text{small}} T$$
 
-Thus, the total output size for the small boxes can be bounded by $\frac{N_{\text{small}} T}{4}$. If we want to bound this by $S$, then, we get the following condition
+Thus, the total output size for the small boxes can be bounded by $\frac{N_{\text{small}} T}{8}$. If we want to bound this by $S$, then, we get the following condition
 
-$$ N_{\text{small}}\leq \frac{4S}{T}$$
+$$ N_{\text{small}}\leq \frac{8S}{T}$$
 
 This shows that the smaller $T$ is, the number of small boxes the implementation can process with the same fixed output buffer size is greater.
 
