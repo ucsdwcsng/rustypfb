@@ -31,8 +31,8 @@ The algorithm implemented here, first preselects buffers of size $T_i$ for $1\le
 
 Now, consider the $j$-th box. Suppose its size is $A_k$. Then, exactly one of the following two conditions hold
 
-1. Either $$ A_k \leq T_i \leq 2 A_k $$ for some $i$, or,
-2. $$ 2A_k \leq T $$, where $T$ is the size of the smallest pre-selected buffer.
+1. Either $ A_k \leq T_i \leq 2 A_k $ for some $i$, or,
+2. $ 2A_k \leq T $, where $T$ is the size of the smallest pre-selected buffer.
 
 Boxes satisfying the first condition will be called "large", while boxes satisfying the second condition will be called "small". Thus, processing a large box needs an output memory allocation of size $\frac{T_i}{2}$. 
 
