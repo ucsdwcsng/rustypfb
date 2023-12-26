@@ -28,6 +28,8 @@ and the same for the DSSS scenario
 
 We see no aliasing artifacts, and no distortions in the reverted spectrum. Perfect reconstruction!
 
+Next, we discuss the revert algorithm. The synthesizer needs to write the reconstructed IQ samples to an output buffer. The sizes of the boxes to be reverted cannot be known in advance. Therefore, in order to bound the size od the output memory in advance, we need to give a reasonable upper bound on the number of boxes to be reverted. The interesting thing about the following analysis is that it would return a bound on the number of boxes that are 'small' in some sense.
+
 Usage instructions coming soon.
 
 
