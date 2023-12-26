@@ -42,7 +42,11 @@ Now, consider the $j$-th box. Suppose its size is $A_j$ and the time and frequen
 
 1. Either 
 
-$$2^k T \leq t_j \leq 2^{k+1} T, 2^l F\leq f_j\leq 2^{l+1} F$$
+$$2^k T \leq t_j \leq 2^{k+1} T $$
+
+and 
+
+$$2^l F\leq f_j\leq 2^{l+1} F$$
 
 for some $k, l$. In this case, we can write that the size of the box $A_j$ satisfies 
 
