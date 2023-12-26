@@ -26,7 +26,9 @@ The synthesizer needs to write the reconstructed IQ samples to an output buffer.
 
 Suppose we process a chunk of samples of size $S / 2$. The output of the $N_{\text{ch}}$ channelizer would then have size
 
-$$ N_{\text{ch}} * N_{\text{sl}} = S $$, where $N_{\text{sl}}$ is the number of samples in each channel at output.
+$$ N_{\text{ch}} * N_{\text{sl}} = S $$, 
+
+where $N_{\text{sl}}$ is the number of samples in each channel at output.
 
 The algorithm implemented here, first preselects buffers of size $T_i$ for $1\leq i\leq k$. These buffers will copy the samples of the to-be-reverted box from the full channogram with appropriate padding, and apply the synthesis filter for that buffer size.
 
