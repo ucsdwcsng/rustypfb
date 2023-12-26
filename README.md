@@ -30,11 +30,19 @@ $$ N_{\text{ch}} * N_{\text{sl}} = S $$
 
 where $N_{\text{sl}}$ is the number of samples in each channel at output.
 
-The algorithm implemented here, first preallocates buffers of size $T_i = 2^i T$ for $1\leq i\leq k$. The dimensions of these buffers in the time and frequency dimensions are of the form $\{T, 2T, 2^2T,\cdots\}$ and $\{F, 2F, 2^2 F, \cdots\}$. Then, for a given box, the tightest buffer that covers the box will be selected to copy the samples of the box from the full channogram with appropriate padding, and apply the synthesis filter for that buffer size.
+The algorithm implemented here, first preallocates buffers of size $T_i = 2^i T$ for $1\leq i\leq k$. The dimensions of these buffers in the time and frequency dimensions are of the form 
+
+$$\{T, 2T, 2^2T,\cdots\}, \{F, 2F, 2^2 F, \cdots\}$$
+
+Then, for a given box, the tightest buffer that covers the box will be selected to copy the samples of the box from the full channogram with appropriate padding, and apply the synthesis filter for that buffer size.
 
 Now, consider the $j$-th box. Suppose its size is $A_j$ and the time and frequency dimensions of this box are $(t_j, f_j)$. Then, exactly one of the following conditions hold
 
-1. Either $2^k T \leq t_j \leq 2^{k+1} T$ and $2^l F\leq f_j\leq 2^{l+1} F$ for some $k, l$. In this case, we can write that the size of the box $A_j$ satisfies 
+1. Either 
+
+$$2^k T \leq t_j \leq 2^{k+1} T, 2^l F\leq f_j\leq 2^{l+1} F$$
+
+for some $k, l$. In this case, we can write that the size of the box $A_j$ satisfies 
 
 $$ A_j \leq T_i \leq 4A_j $$
 
