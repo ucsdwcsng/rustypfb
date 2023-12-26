@@ -26,7 +26,7 @@ The synthesizer needs to write the reconstructed IQ samples to an output buffer.
 
 Suppose we process a chunk of samples of size $S / 2$. The output of the $N_{\text{ch}}$ channelizer would then have size
 
-$$ N_{\text{ch}} * N_{\text{sl}} = S $$, 
+$$ N_{\text{ch}} * N_{\text{sl}} = S $$ 
 
 where $N_{\text{sl}}$ is the number of samples in each channel at output.
 
