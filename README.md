@@ -64,7 +64,5 @@ since the boxes are non-overlapping in the channogram.
 
 This proves that boxes can be processed with an output memory allocation of size at most $2S$, which is twice the size of the original channogram.
 
-Usage instructions coming soon.
-
 
 
