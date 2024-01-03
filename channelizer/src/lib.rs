@@ -156,7 +156,7 @@ mod tests {
 
         // Process
         chann_obj.process(&mut input_vec, &mut output_buffer);
-
+        // output_buffer.display(10);
         // Transfer
         // unsafe{transfer(output_buffer.ptr, output_cpu.as_mut_ptr(), nch*nslice)};
         output_buffer.dump(&mut output_cpu);

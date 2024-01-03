@@ -79,6 +79,29 @@ synthesizer::synthesizer(int chann, int tap, int slice)
     cudaMalloc((void**)&output, sizeof(cufftComplex)*chann*slice);
 }
 
+void synthesizer::reconstruct(cufftComplex *input, box Box, cufftComplex *output)
+{
+    auto start_channel = Box.chann_start;
+    auto end_channel = Box.chann_stop;
+    auto start_time = Box.time_start;
+    auto end_time = Box.time_stop;
+
+    // auto area = (end_time - start_time)*(end_channel - start_channel);
+    int padded_channel_factor = (int)(log2(32 * (end_channel - start_channel) / nchannel));
+    int padded_channel_index = padded_channel_factor ? padded_channel_factor + 1 : 0;
+    int padded_slice_factor = (int)(log2(32 * (end_time - start_time) / nslice));
+    int padded_slice_index = padded_slice_factor ? padded_slice_factor + 1 : 0;
+
+    int offset = (channel_vec[padded_channel_index] - (end_channel - start_channel)) / 2;
+
+    // auto full_channel = (int)pow(2, padded_channel);
+    // int scratch_start_chann = (full_channel-(end_channel - start_channel)) / 2;
+
+    // cudaMemcpy2D(scratch + nslice * scratch_start_chann, nslice, input + start_channel * nslice, nslice, (end_time - start_time) * sizeof(cufftComplex), end_channel - start_channel, cudaMemcpyDeviceToDevice);
+    // cufftExecC2C(large_plans[6*padded_channel + padded_slice], scratch, scratch, CUFFT_FORWARD);
+    // synthesize<<<end_time - start_time, area, full_channel>>>(scratch, Box+boxind, output, taps);
+}
+
 synthesizer::~synthesizer()
 {
     for (int ind = 0; ind < 25; ind++)
@@ -92,24 +115,4 @@ synthesizer::~synthesizer()
     delete[] filters;
     delete[] input_plans;
     delete[] downconvert_plans;
-}
-
-void synthesizer::reconstruct(cufftComplex *input, box Box)
-{
-    // auto start_channel = curr_box.start_chann;
-    // auto end_channel = curr_box.stop_chann;
-    // auto start_time = curr_box.start_time;
-    // auto end_time = curr_box.stop_time;
-
-    // auto area = (end_time - start_time)*(end_channel - start_channel);
-
-    // int padded_channel = (int)(log2(((32 * (end_channel - start_channel)) / nchannel) + 1));
-    // int padded_slice = (int)(log2(((32 * (end_time - start_time)) / nslice) + 1));
-
-    // auto full_channel = (int)pow(2, padded_channel);
-    // int scratch_start_chann = (full_channel-(end_channel - start_channel)) / 2;
-
-    // cudaMemcpy2D(scratch + nslice * scratch_start_chann, nslice, input + start_channel * nslice, nslice, (end_time - start_time) * sizeof(cufftComplex), end_channel - start_channel, cudaMemcpyDeviceToDevice);
-    // cufftExecC2C(large_plans[6*padded_channel + padded_slice], scratch, scratch, CUFFT_FORWARD);
-    // synthesize<<<end_time - start_time, area, full_channel>>>(scratch, Box+boxind, output, taps);
 }

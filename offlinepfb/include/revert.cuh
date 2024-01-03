@@ -32,9 +32,11 @@ class synthesizer
     cufftComplex** filters;
 
     vector<int> output_start_times;
+    vector<int> channel_vec;
+    vector<int> slice_vec;
 
     synthesizer(int, int, int);
-    void reconstruct(cufftComplex*, box);
+    void reconstruct(cufftComplex*, box, cufftComplex*);
     void revert(cufftComplex*, box*, cufftComplex*, cufftComplex*, int);
     ~synthesizer();
 };
