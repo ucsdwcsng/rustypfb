@@ -2,10 +2,11 @@
 **/.vscode
 **/*.png
 **/*.txt
-**/*.32cf
+dsss_chann*.32cf
+lpi_chann*.32cf
 **/debug
 **/build
 **/Cargo.lock
-**/busyBand
 **/offline_channelizer
 **/online_channelizer
+**/.yml

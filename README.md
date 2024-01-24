@@ -20,49 +20,15 @@ Here is the same comparison with the DSSS scenario.
 
 In both the cases, we see no aliasing artifacts, and no distortions in the reverted spectrum. By definition, this is perfect reconstruction!
 
-Next, we discuss the revert algorithm, specifically bounds on the memory requirements of the same. 
+The main Rust call signatures are contained in the ``channelizer`` crate. The ``examples`` directory here shows how both the forward and revert work.
 
-The synthesizer needs to write the reconstructed IQ samples to an output buffer. The sizes of the boxes to be reverted cannot be known in advance. Therefore, in order to bound the size of the output memory in advance, we need to give a reasonable upper bound on the number of boxes to be reverted. The interesting thing about the following analysis is that it would return a bound on the number of boxes that are 'small' in some sense.
+The forward channelizer process function has been benchmarked to attain a throughput of ``~763 Megasamples per second`` on a single NVIDIA A10 GPU core. 
 
-Suppose we process a chunk of samples of size $S / 2$. The output of the $N_{\text{ch}}$ channelizer would then have size
+In order to check things are running as required, the test written in the root of the ``channelizer`` crate creates channelized output. One can visualize this by running the ``pytest_lib_visual.py`` script. This visualizes the output channelized spectrum.
 
-$$ N_{\text{ch}} * N_{\text{sl}} = S $$ 
+To test that the reverse channelization is working as expected, run the ``revert_example.rs`` inside examples. To visualize the result, run ``pytest_revert.py`` to generate the png files linked here.
 
-where $N_{\text{sl}}$ is the number of samples in each channel at output.
+All dependencies are listed in the Dockerfile included in the repo.
 
-The algorithm implemented here, first preallocates buffers of size $T_i = 2^i T$ for $1\leq i\leq k$. The dimensions of these buffers in the time and frequency dimensions are of the form 
-
-$$\{T, 2T, 2^2T,\cdots\}$$
-
-$$\{F, 2F, 2^2 F, \cdots\}$$
-
-Then, for a given box, the tightest buffer that covers the box will be selected to copy the samples of the box from the full channogram with appropriate padding, and apply the synthesis filter for that buffer size.
-
-Now, consider the $j$-th box. Suppose its size is $A_j$ and the time and frequency dimensions of this box are $(t_j, f_j)$. 
-
-We will always assume that $T, F$ above have been chosen so that the box dimensions always satisfy
-
-$$ T\leq t_j, F\leq f_j$$
-
-for every box $A_j$. Under these assumptions,
-
-$$2^k T \leq t_j \leq 2^{k+1} T $$
-
-and 
-
-$$2^l F\leq f_j\leq 2^{l+1} F$$
-
-for some $k, l$. We can write that the size of the box $A_j$ satisfies 
-
-$$ A_j \leq T_i \leq 4A_j $$
-
-The processing of these boxes therefore implies an output buffer of size at most
-
-$$ \sum_{k| A_k} T_i \leq 4 \sum_{k | A_k} A_k \leq 4S $$
-
-since the boxes are non-overlapping in the channogram.
-
-This proves that boxes can be processed with an output memory allocation of size at most $2S$, which is twice the size of the original channogram.
-
-
+Happy channelizing!
 
