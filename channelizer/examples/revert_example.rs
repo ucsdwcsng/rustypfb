@@ -1,4 +1,3 @@
-use analyzer::SSCAWrapper;
 pub use channelizer::{sinc, ChunkChannelizer};
 use num::{Complex, Zero};
 use num_complex::Complex32;
@@ -62,42 +61,18 @@ fn main() {
     let dsss_samples: &[f32] = bytemuck::cast_slice(&dsss_samples_bytes);
     let dsss_samples_complex: &[Complex<f32>] = bytemuck::cast_slice(&dsss_samples_bytes);
 
-    // // println!("{}", samples.len());
-    // // Copy onto input
+    // Copy onto input
     input_vec[..dsss_samples.len()].clone_from_slice(dsss_samples);
     input_vec_complex[..dsss_samples_complex.len()].clone_from_slice(dsss_samples_complex);
 
-    // // Process
+    // Process
     chann_obj.process(&mut input_vec, &mut channelized_output_buffer);
 
-    // // Revert
+    // Revert
     chann_obj.revert(&mut channelized_output_buffer, &mut revert_output_buffer);
 
-    // // // Transfer
+    // Transfer
     revert_output_buffer.dump(&mut revert_output_cpu);
-
-    // // let size_val = 133120 * 8;
-    // // let mut ssca_obj = SSCAWrapper::new(size_val);
-
-    // // let outp_size = ssca_obj.get_output_size();
-    // // let mut original_sum_buffer = vec![0.0 as f32; outp_size as usize];
-    // // let mut original_max_buffer = vec![0.0 as f32; outp_size as usize];
-
-    // // let mut reverted_max_buffer = vec![0.0 as f32; outp_size as usize];
-    // // let mut reverted_sum_buffer = vec![0.0 as f32; outp_size as usize];
-
-    // // ssca_obj.process(
-    // //     &mut revert_output_cpu,
-    // //     false,
-    // //     &mut reverted_sum_buffer,
-    // //     &mut reverted_max_buffer,
-    // // );
-    // // ssca_obj.process(
-    // //     &mut input_vec_complex,
-    // //     false,
-    // //     &mut original_sum_buffer,
-    // //     &mut original_max_buffer,
-    // // );
 
     let mut dsss_file = std::fs::File::create("dsss_chann_reverted_output.32cf").unwrap();
 
@@ -105,7 +80,7 @@ fn main() {
 
     let _ = dsss_file.write_all(dsss_outp_slice);
 
-    // // // Reset input
+    // Reset input
     input_vec.iter_mut().for_each(|x| *x = 0.0);
     input_vec_complex.iter_mut().for_each(|x| *x = Complex32::zero());
 
@@ -117,22 +92,14 @@ fn main() {
     let _ = lpi_file.read_to_end(&mut lpi_samples_bytes);
     let lpi_samples: &[f32] = bytemuck::cast_slice(&lpi_samples_bytes);
     let lpi_samples_complex: &[Complex<f32>] = bytemuck::cast_slice(&lpi_samples_bytes);
-    // println!("{}", samples_.len());
-    // Copy onto input
-    // let mut input_vec_ = vec![0.0 as f32; (nch*nslice) as usize];
+    
     input_vec[..lpi_samples.len()].clone_from_slice(lpi_samples);
     input_vec_complex[..lpi_samples_complex.len()].clone_from_slice(lpi_samples_complex);
-
-    // // Setup the output buffer
-    // let mut output_buffer_: DevicePtr = DevicePtr::new(nch * nslice);
 
     // Process
     chann_obj.process(&mut input_vec, &mut channelized_output_buffer);
 
-    // let mut output_cpu_ = vec![Complex::<f32>::zero(); (nch*nslice) as usize];
-
     // Transfer
-    // unsafe{transfer(output_buffer.ptr, output_cpu.as_mut_ptr(), nch*nslice)};
     chann_obj.revert(&mut channelized_output_buffer, &mut revert_output_buffer);
 
     revert_output_buffer.dump(&mut revert_output_cpu);

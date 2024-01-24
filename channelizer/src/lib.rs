@@ -28,37 +28,6 @@ pub fn sinc(inp: f32) -> f32 {
         (PI*inp).sin() / (PI*inp)
     }
 }
-// impl DevicePtr {
-//     pub fn new(sz: i32) -> Self {
-//         // println!("Memory getting allocated in Rust\n");
-//         Self {
-//             ptr: unsafe { memory_allocate_device(sz) },
-//             size: sz,
-//         }
-//     }
-
-//     pub fn display(&self, count: i32) {
-//         unsafe {
-//             let z = memory_allocate_cpu(count);
-//             transfer(self.ptr, z, count);
-//             for ind in 0..(count as usize) {
-//                 println!(
-//                     "{}, {}\n",
-//                     (*z.offset(ind as isize)).re,
-//                     (*z.offset(ind as isize)).im
-//                 );
-//             }
-//             memory_deallocate_cpu(z);
-//         };
-//     }
-// }
-
-// impl Drop for DevicePtr {
-//     fn drop(&mut self) {
-//         // println!("Memory getting deallocated in Rust");
-//         unsafe { memory_deallocate_device(self.ptr) };
-//     }
-// }
 
 pub struct ChunkChannelizer {
     opaque_chann: *mut Chann,
@@ -111,8 +80,6 @@ mod tests {
 
     use super::*;
     use std::io::Write;
-    use std::time::Instant;
-    use std::mem::{self, align_of_val};
     #[test]
     fn correctness_visual_test() {
         // Setup the Channelizer
@@ -129,7 +96,7 @@ mod tests {
                 let arg = float_taps + (y + 1.0) / chann_float;
                 let darg = (2.0 * y) / (chann_float * chann_proto) - 1.0;
                 let carg = kbeta * (1.0 - darg * darg).sqrt();
-                (unsafe { compute_bessel(carg) / compute_bessel(kbeta) }) * sinc(arg)
+                (compute_bessel(carg) / compute_bessel(kbeta) ) * sinc(arg)
             })
             .collect();
         let mut chann_obj = ChunkChannelizer::new(filter.as_mut_slice(), ntaps, nch, nslice);

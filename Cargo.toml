@@ -13,5 +13,4 @@ cc = "1.0.83"
 num-complex = { version = "0.4.4", features=["bytemuck"]} 
 offlinepfb-sys = { path = "./offlinepfb-sys"}
 streaming_channelizer = { path = "./streaming_channelizer"}
-analyzer = { git = "ssh://git@github.com/ucsdwcsng/rustycyclo.git", branch = "feature/rustycuda_integration" }
 rustdevice = { git = "ssh://git@github.com/ucsdwcsng/rustycuda.git"}

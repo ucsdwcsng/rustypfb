@@ -10,7 +10,6 @@ libm.workspace = true
 num.workspace = true
 num-complex.workspace = true
 offlinepfb-sys.workspace = true
-analyzer.workspace = true
 rustdevice.workspace = true
 
 [build-dependencies]
