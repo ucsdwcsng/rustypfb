@@ -45,8 +45,6 @@ fn main() {
     // Setup the CPU output buffer
     let mut revert_output_cpu = vec![Complex::<f32>::zero(); (nch * nslice / 2) as usize];
 
-    // // let mut revert_output_buffer_cpu = vec![Complex::<f32>::zero(); (nch*nslice) / 2 as usize];
-
     // Setup the input vector
     let mut input_vec = vec![0.0 as f32; (nch * nslice) as usize];
     let mut input_vec_complex = vec![Complex::zero() as Complex<f32>; (nch * nslice / 2) as usize];
@@ -55,7 +53,6 @@ fn main() {
      * DSSS test
      */
     let mut dsss_file = std::fs::File::open("./busyBand/DSSS.32cf").unwrap();
-    // // println!("{}", std::path::Path{"../busyBand/DSSS.32cf"});
     let mut dsss_samples_bytes = Vec::new();
     let _ = dsss_file.read_to_end(&mut dsss_samples_bytes);
     let dsss_samples: &[f32] = bytemuck::cast_slice(&dsss_samples_bytes);
@@ -99,14 +96,13 @@ fn main() {
     // Process
     chann_obj.process(&mut input_vec, &mut channelized_output_buffer);
 
-    // Transfer
+    // Revert
     chann_obj.revert(&mut channelized_output_buffer, &mut revert_output_buffer);
-
+    
+    // Transfer
     revert_output_buffer.dump(&mut revert_output_cpu);
 
     let mut lpi_file = std::fs::File::create("./lpi_chann_reverted_output.32cf").unwrap();
-
     let lpi_outp_slice: &mut [u8] = bytemuck::cast_slice_mut(&mut revert_output_cpu);
-
     let _ = lpi_file.write_all(lpi_outp_slice);
 }

@@ -11,15 +11,7 @@ use offlinepfb_sys::{
 use rustdevice::{DevicePtr, compute_bessel};
 use std::io::Read;
 use std::f32::consts::PI;
-/// This struct defines the Rust side interface to a GPU array of complex float 32 numbers.
-/// The ptr field of this struct will NOT be dereferenced on the Rust side. All manipulations
-/// of this field will occur in unsafe blocks inside member functions of the DevicePtr struct.
-/// The functions on the CUDA side which will perform these manipulations
-/// will be declared to have extern C linkage.
-// pub struct DevicePtr {
-//     pub ptr: *mut Complex<f32>,
-//     pub size: i32,
-// }
+
 
 pub fn sinc(inp: f32) -> f32 {
     if inp == 0.0 {
@@ -123,15 +115,11 @@ mod tests {
 
         // Process
         chann_obj.process(&mut input_vec, &mut output_buffer);
-        // output_buffer.display(10);
         // Transfer
-        // unsafe{transfer(output_buffer.ptr, output_cpu.as_mut_ptr(), nch*nslice)};
         output_buffer.dump(&mut output_cpu);
 
         let mut dsss_file = std::fs::File::create("../dsss_chann_output.32cf").unwrap();
-
         let dsss_outp_slice: &mut [u8] = bytemuck::cast_slice_mut(&mut output_cpu);
-
         let _ = dsss_file.write_all(dsss_outp_slice);
 
 
@@ -146,29 +134,17 @@ mod tests {
         let mut lpi_samples_bytes = Vec::new();
         let _ = lpi_file.read_to_end(&mut lpi_samples_bytes);
         let lpi_samples: &[f32] = bytemuck::cast_slice(&lpi_samples_bytes);
-        // println!("{}", samples_.len());
         // Copy onto input
-        // let mut input_vec_ = vec![0.0 as f32; (nch*nslice) as usize];
         input_vec[..lpi_samples.len()].clone_from_slice(lpi_samples);
-
-        // // Setup the output buffer
-        // let mut output_buffer_: DevicePtr = DevicePtr::new(nch * nslice);
 
         // Process
         chann_obj.process(&mut input_vec, &mut output_buffer);
 
-        // let mut output_cpu_ = vec![Complex::<f32>::zero(); (nch*nslice) as usize];
-
         // Transfer
-        // unsafe{transfer(output_buffer.ptr, output_cpu.as_mut_ptr(), nch*nslice)};
         output_buffer.dump(&mut output_cpu);
 
         let mut lpi_file = std::fs::File::create("../lpi_chann_output.32cf").unwrap();
-
         let lpi_outp_slice: &mut [u8] = bytemuck::cast_slice_mut(&mut output_cpu);
-
         let _ = lpi_file.write_all(lpi_outp_slice);
-
-
     }
 }
