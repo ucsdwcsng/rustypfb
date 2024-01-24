@@ -24,5 +24,11 @@ The main Rust call signatures are contained in the ``channelizer`` crate. The ``
 
 The forward channelizer process function has been benchmarked to attain a throughput of ``~763 Megasamples per second`` on a single NVIDIA A10 GPU core. 
 
+In order to check things are running as required, the test written in the root of the ``channelizer`` crate creates channelized output. One can visualize this by running the ``pytest_lib_visual.py`` script. This visualizes the output channelized spectrum.
 
+To test that the reverse channelization is working as expected, run the ``revert_example.rs`` inside examples. To visualize the result, run ``pytest_revert.py`` to generate the png files linked here.
+
+All dependencies are listed in the Dockerfile included in the repo.
+
+Happy channelizing!
 
